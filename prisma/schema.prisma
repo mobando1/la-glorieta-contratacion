@@ -1,0 +1,224 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Restaurant {
+  id        String   @id @default(uuid())
+  name      String
+  slug      String   @unique
+  address   String?
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  candidates       Candidate[]
+  employees        Employee[]
+  adminAssignments AdminRestaurant[]
+  workPeriods      WorkPeriod[]
+}
+
+model Candidate {
+  id              String   @id @default(uuid())
+  fullName        String
+  phone           String
+  email           String?
+  positionApplied String
+  status          String   @default("NUEVO")
+  notesAdmin      String?
+  restaurantId    String?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  restaurant          Restaurant?            @relation(fields: [restaurantId], references: [id])
+  interviews          ApplicationInterview[]
+  personalInterviews  PersonalInterview[]
+  evaluations         AIEvaluation[]
+  decisions           AdminDecision[]
+  employee            Employee?
+}
+
+model ApplicationInterview {
+  id                    String   @id @default(uuid())
+  candidateId           String
+  answers               String
+  completionTimeSeconds Int?
+  isComplete            Boolean  @default(false)
+  createdAt             DateTime @default(now())
+
+  candidate   Candidate      @relation(fields: [candidateId], references: [id])
+  evaluations AIEvaluation[]
+}
+
+model PersonalInterview {
+  id                String    @id @default(uuid())
+  candidateId       String
+  adminObservations String
+  answers           String
+  scheduledAt       DateTime?
+  conductedAt       DateTime?
+  isComplete        Boolean   @default(false)
+  createdAt         DateTime  @default(now())
+
+  candidate   Candidate      @relation(fields: [candidateId], references: [id])
+  evaluations AIEvaluation[]
+}
+
+model AIEvaluation {
+  id                    String   @id @default(uuid())
+  candidateId           String
+  interviewId           String?
+  personalInterviewId   String?
+  evaluationType        String   @default("ONLINE")
+  modelVersion          String
+  rubricVersion         String
+  attitudeScore         Int
+  responsibilityScore   Int
+  technicalScore        Int
+  totalScore            Int
+  suggestedDecision     String
+  redFlags              String
+  summary               String
+  rationale             String
+  confidence            Float?
+  requiresHumanReview   Boolean  @default(false)
+  createdAt             DateTime @default(now())
+
+  candidate         Candidate             @relation(fields: [candidateId], references: [id])
+  interview         ApplicationInterview?  @relation(fields: [interviewId], references: [id])
+  personalInterview PersonalInterview?     @relation(fields: [personalInterviewId], references: [id])
+}
+
+model AdminDecision {
+  id             String   @id @default(uuid())
+  candidateId    String
+  decision       String
+  notes          String?
+  overrideReason String?
+  createdAt      DateTime @default(now())
+
+  candidate Candidate @relation(fields: [candidateId], references: [id])
+}
+
+model AdminUser {
+  id           String   @id @default(uuid())
+  email        String   @unique
+  passwordHash String
+  role         String   @default("SUPER_ADMIN")
+  createdAt    DateTime @default(now())
+
+  restaurantAssignments AdminRestaurant[]
+}
+
+model AdminRestaurant {
+  id           String @id @default(uuid())
+  adminUserId  String
+  restaurantId String
+
+  admin      AdminUser  @relation(fields: [adminUserId], references: [id])
+  restaurant Restaurant @relation(fields: [restaurantId], references: [id])
+
+  @@unique([adminUserId, restaurantId])
+}
+
+model AuditLog {
+  id         String   @id @default(uuid())
+  action     String
+  entityType String
+  entityId   String
+  details    String?
+  createdAt  DateTime @default(now())
+}
+
+model RateLimit {
+  id          String   @id
+  count       Int      @default(1)
+  windowStart DateTime @default(now())
+}
+
+model Employee {
+  id               String   @id @default(uuid())
+  candidateId      String   @unique
+  fullName         String
+  phone            String
+  email            String?
+  address          String?
+  cedulaNumber     String?
+  restaurantId     String?
+  onboardingToken  String   @unique
+  tokenExpiresAt   DateTime
+  onboardingStatus String   @default("PENDIENTE")
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  // Talent Pool fields
+  employmentStatus  String   @default("ACTIVO")
+  contractType      String?
+  preferredShifts   String?
+  priorityScore     Int      @default(50)
+  reliabilityScore  Int      @default(50)
+  totalWorkPeriods  Int      @default(0)
+  hireDate          DateTime?
+  terminationDate   DateTime?
+  terminationReason String?
+  adminNotes        String?
+
+  restaurant         Restaurant?         @relation(fields: [restaurantId], references: [id])
+  candidate          Candidate           @relation(fields: [candidateId], references: [id])
+  documents          Document[]
+  workPeriods        WorkPeriod[]
+  performanceReviews PerformanceReview[]
+}
+
+model Document {
+  id         String   @id @default(uuid())
+  employeeId String
+  type       String
+  fileName   String
+  filePath   String
+  fileSize   Int
+  mimeType   String
+  uploadedAt DateTime @default(now())
+
+  employee Employee @relation(fields: [employeeId], references: [id])
+}
+
+model WorkPeriod {
+  id           String    @id @default(uuid())
+  employeeId   String
+  restaurantId String?
+  startDate    DateTime
+  endDate      DateTime?
+  contractType String
+  position     String
+  status       String    @default("ACTIVO")
+  notes        String?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  employee   Employee    @relation(fields: [employeeId], references: [id])
+  restaurant Restaurant? @relation(fields: [restaurantId], references: [id])
+  review     PerformanceReview?
+}
+
+model PerformanceReview {
+  id           String   @id @default(uuid())
+  employeeId   String
+  workPeriodId String   @unique
+  punctuality  Int
+  attitude     Int
+  quality      Int
+  reliability  Int
+  teamwork     Int
+  overallScore Int
+  wouldRehire  Boolean
+  notes        String?
+  createdAt    DateTime @default(now())
+
+  employee   Employee   @relation(fields: [employeeId], references: [id])
+  workPeriod WorkPeriod @relation(fields: [workPeriodId], references: [id])
+}
