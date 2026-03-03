@@ -11,7 +11,7 @@ const BENEFITS = [
   {
     icon: "🏆",
     title: "Bonos por rendimiento",
-    highlight: "Hasta $200.000/mes",
+    highlight: "Hasta $150.000/mes",
     description: "Adicionales según tu desempeño, aumentando tu salario base",
   },
   {
