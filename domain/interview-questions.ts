@@ -198,7 +198,7 @@ const MOTIVATION_QUESTIONS: Question[] = [
   },
   {
     id: "whereDoYouSeeYourself",
-    label: "¿Dónde te ves trabajando en 6 meses?",
+    label: "¿Buscas un trabajo estable o algo temporal?",
     type: "textarea",
     required: true,
     maxLength: 300,

@@ -98,7 +98,7 @@ Los IDs de preguntas son estables y no deben cambiar entre versiones.
 | ------------------------- | --------------------------------------------------------------------------- | ----- | ----------- | -------- |
 | `whyThisJob`              | ¿Por qué quieres trabajar en La Glorieta?                                  | texto | sí          | 500 char |
 | `whatDoYouKnowAboutUs`    | ¿Qué sabes sobre nuestro restaurante?                                      | texto | sí          | 300 char |
-| `whereDoYouSeeYourself`   | ¿Dónde te ves trabajando en 6 meses?                                       | texto | sí          | 300 char |
+| `whereDoYouSeeYourself`   | ¿Buscas un trabajo estable o algo temporal?                                 | texto | sí          | 300 char |
 | `whatMotivatesYou`        | ¿Qué es lo que más te motiva de un trabajo?                                | texto | sí          | 300 char |
 
 > **Alimenta:** `attitudeScore` — Orientación al servicio, interés genuino, estabilidad.
