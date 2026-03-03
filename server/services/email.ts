@@ -11,7 +11,7 @@ async function getResend() {
   return resendInstance;
 }
 
-const FROM = () => process.env.EMAIL_FROM || "contratacion@laglorieta.com";
+const FROM = () => process.env.EMAIL_FROM || "onboarding@resend.dev";
 
 async function sendEmail(to: string, subject: string, html: string): Promise<boolean> {
   try {
