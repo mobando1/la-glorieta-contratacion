@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef, useCallback } from "react";
+import { useState, useRef, useCallback } from "react";
 import { getInterviewSteps } from "@/domain/interview-questions";
 import { useToast } from "@/components/ui/toast";
 import { StepIndicator } from "@/components/interview/step-indicator";
@@ -15,7 +15,6 @@ const INITIAL_DATA: FormData = {
     fullName: "",
     phone: "",
     email: "",
-    restaurantApplied: "",
     positionApplied: "",
     birthDate: "",
     neighborhood: "",
@@ -28,6 +27,7 @@ const INITIAL_DATA: FormData = {
   availability: {
     canWorkWeekends: null,
     canWorkHolidays: null,
+    flexibleSchedule: null,
     availableShifts: [],
     startDate: "",
     hasOtherJob: null,
@@ -62,11 +62,6 @@ const INITIAL_DATA: FormData = {
 
 const STEP_SHORT_TITLES = ["Inicio", "Datos", "Disp.", "Motiv.", "Resp.", "Escen.", "Técn.", "Conf."];
 
-interface RestaurantOption {
-  id: string;
-  name: string;
-}
-
 export default function AplicarPage() {
   const { showToast } = useToast();
   const [currentStep, setCurrentStep] = useState(0);
@@ -75,32 +70,9 @@ export default function AplicarPage() {
   const [submitting, setSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
   const startTimeRef = useRef(Date.now());
-  const [restaurants, setRestaurants] = useState<RestaurantOption[]>([]);
-
-  useEffect(() => {
-    fetch("/api/restaurants")
-      .then((res) => res.json())
-      .then((data) => setRestaurants(data.restaurants || []))
-      .catch(() => {});
-  }, []);
 
   const position = formData.basic.positionApplied as Position | "";
-  const rawSteps = getInterviewSteps(position ? (position as Position) : undefined);
-
-  // Inject dynamic restaurant options into the restaurantApplied question
-  const steps = rawSteps.map((step) => {
-    if (step.id !== "basic") return step;
-    return {
-      ...step,
-      questions: step.questions.map((q) => {
-        if (q.id !== "restaurantApplied") return q;
-        return {
-          ...q,
-          options: restaurants.map((r) => ({ value: r.id, label: r.name })),
-        };
-      }),
-    };
-  });
+  const steps = getInterviewSteps(position ? (position as Position) : undefined);
   const step = steps[currentStep];
 
   const stepInfos = steps.map((s, i) => ({
@@ -218,7 +190,7 @@ export default function AplicarPage() {
         ...basicData,
         numberOfChildren: basicData.hasChildren ? (typeof basicData.numberOfChildren === "string" ? parseInt(basicData.numberOfChildren as string, 10) : basicData.numberOfChildren) : 0,
         email: (basicData.email as string) || undefined,
-        restaurantId: (basicData.restaurantApplied as string) || undefined,
+        restaurantId: undefined,
       },
       availability: formData.availability,
       motivation: formData.motivation,

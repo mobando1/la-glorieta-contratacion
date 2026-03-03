@@ -47,14 +47,6 @@ const BASIC_QUESTIONS: Question[] = [
     placeholder: "ejemplo@correo.com",
   },
   {
-    id: "restaurantApplied",
-    label: "¿A qué sede te gustaría aplicar? (preferencia)",
-    type: "select",
-    required: false,
-    options: [], // Se cargan dinámicamente desde la API
-    hint: "La asignación final depende de las necesidades del negocio. Puedes ser ubicado(a) en cualquiera de nuestras sedes.",
-  },
-  {
     id: "positionApplied",
     label: "¿A qué cargo te gustaría aplicar?",
     type: "select",
@@ -148,6 +140,13 @@ const AVAILABILITY_QUESTIONS: Question[] = [
       { value: "TARDE", label: "Tarde" },
       { value: "COMPLETO", label: "Jornada Completa" },
     ],
+  },
+  {
+    id: "flexibleSchedule",
+    label: "A veces es necesario cubrir turnos de compañeros o trabajar en horarios diferentes al habitual. ¿Estás dispuesto(a) a tener flexibilidad de horario?",
+    type: "boolean",
+    required: true,
+    hint: "Siempre buscamos un acuerdo que funcione para ambas partes.",
   },
   {
     id: "startDate",

@@ -81,6 +81,7 @@ Los IDs de preguntas son estables y no deben cambiar entre versiones.
 | ------------------- | --------------------------------------------------------------- | ---------- | ----------- | -------- |
 | `canWorkWeekends`   | ¿Puedes trabajar sábados, domingos y festivos?                 | sí/no      | sí          | —        |
 | `canWorkHolidays`   | ¿Puedes trabajar en fechas especiales (Navidad, Año Nuevo)?    | sí/no      | sí          | —        |
+| `flexibleSchedule`  | ¿Estás dispuesto(a) a tener flexibilidad de horario?           | sí/no      | sí          | —        |
 | `availableShifts`   | ¿En qué turnos puedes trabajar?                                | múltiple   | sí          | —        |
 | `startDate`         | ¿Desde cuándo podrías empezar a trabajar?                      | texto      | sí          | 100 char |
 | `hasOtherJob`       | ¿Actualmente tienes otro trabajo?                              | sí/no      | sí          | —        |
