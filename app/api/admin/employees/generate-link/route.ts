@@ -3,6 +3,7 @@ import { prisma } from "@/server/db/prisma";
 import { validateTransition } from "@/domain/candidate-states";
 import type { CandidateStatus } from "@/domain/types";
 import { logger } from "@/lib/logger";
+import { sendOnboardingLinkEmail } from "@/server/services/email";
 
 export async function POST(request: Request) {
   try {
@@ -90,6 +91,11 @@ export async function POST(request: Request) {
       employeeId: employee.id,
       candidateId: candidate.id,
     });
+
+    // Fire-and-forget: send onboarding link email
+    if (candidate.email) {
+      sendOnboardingLinkEmail(candidate.email, candidate.fullName, onboardingUrl).catch(() => {});
+    }
 
     return NextResponse.json({
       employeeId: employee.id,

@@ -143,6 +143,63 @@ export async function sendPreselectionEmail(
   return sendEmail(to, subject, html);
 }
 
+export async function sendHiredEmail(
+  to: string,
+  candidateName: string,
+  position: string,
+  restaurantName?: string
+): Promise<boolean> {
+  const restaurant = restaurantName || "La Glorieta y Salomé";
+  const subject = `¡Felicidades ${candidateName}! Has sido seleccionado(a) — ${restaurant}`;
+
+  const html = `
+    <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto;">
+      <h2 style="color: #14b8a6;">¡Felicidades, ${candidateName}! 🎉</h2>
+      <p>Nos complace informarte que has sido <strong>seleccionado(a)</strong> para el cargo de <strong>${position}</strong> en <strong>${restaurant}</strong>.</p>
+      <p>Gracias por tu tiempo y dedicación durante el proceso de selección. Estamos muy contentos de que te unas a nuestro equipo.</p>
+      <!-- VIDEO_BIENVENIDA: Agregar embed de YouTube con video de bienvenida cuando esté disponible -->
+      <div style="background-color: #f0fdfa; border: 1px solid #ccfbf1; border-radius: 8px; padding: 16px; margin: 20px 0;">
+        <p style="margin: 0; font-weight: 600; color: #134e4a;">Próximos pasos:</p>
+        <p style="margin: 8px 0 0; color: #115e59;">Pronto te contactaremos por WhatsApp o correo con los detalles para tu proceso de incorporación. Mantente atento(a).</p>
+      </div>
+      <p>¡Bienvenido(a) al equipo!</p>
+      <hr style="border: none; border-top: 1px solid #e5e7eb; margin: 24px 0;" />
+      <p style="color: #6b7280; font-size: 14px;">Equipo de Contratación — ${restaurant}</p>
+    </div>
+  `;
+
+  return sendEmail(to, subject, html);
+}
+
+export async function sendOnboardingLinkEmail(
+  to: string,
+  candidateName: string,
+  onboardingUrl: string,
+  restaurantName?: string
+): Promise<boolean> {
+  const restaurant = restaurantName || "La Glorieta y Salomé";
+  const subject = `Tu enlace de incorporación — ${restaurant}`;
+
+  const html = `
+    <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto;">
+      <h2 style="color: #14b8a6;">Hola ${candidateName},</h2>
+      <p>Ya puedes completar tu proceso de incorporación a <strong>${restaurant}</strong>.</p>
+      <p>Haz clic en el siguiente botón para comenzar:</p>
+      <div style="text-align: center; margin: 24px 0;">
+        <a href="${onboardingUrl}" style="display: inline-block; background-color: #14b8a6; color: white; text-decoration: none; padding: 14px 28px; border-radius: 8px; font-weight: 600; font-size: 16px;">
+          Completar incorporación
+        </a>
+      </div>
+      <p style="color: #6b7280; font-size: 13px;">Este enlace es válido por 7 días. Si tienes problemas, copia y pega esta URL en tu navegador:</p>
+      <p style="color: #6b7280; font-size: 13px; word-break: break-all;">${onboardingUrl}</p>
+      <hr style="border: none; border-top: 1px solid #e5e7eb; margin: 24px 0;" />
+      <p style="color: #6b7280; font-size: 14px;">Equipo de Contratación — ${restaurant}</p>
+    </div>
+  `;
+
+  return sendEmail(to, subject, html);
+}
+
 export async function sendInterviewInvitation(
   to: string,
   candidateName: string,
