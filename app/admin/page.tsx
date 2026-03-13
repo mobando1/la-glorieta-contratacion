@@ -26,6 +26,7 @@ interface Stats {
     entityId: string;
     details: string | null;
     createdAt: string;
+    performedBy: string | null;
   }[];
   employees: {
     total: number;
@@ -369,7 +370,9 @@ export default function DashboardPage() {
                       </span>
                     )}
                   </p>
-                  <p className="text-xs text-gray-400">{timeAgo(activity.createdAt)}</p>
+                  <p className="text-xs text-gray-400">
+                    {activity.performedBy ? activity.performedBy : "Sistema"} &middot; {timeAgo(activity.createdAt)}
+                  </p>
                 </div>
               </div>
             ))}

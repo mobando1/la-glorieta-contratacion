@@ -1,9 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
+import { rename, access } from "fs/promises";
+import { join } from "path";
 import { prisma } from "@/server/db/prisma";
 import { validateFullInterview, normalizePhone } from "@/domain/validation";
 import { interviewSubmissionSchema } from "@/domain/schemas";
 import { logger } from "@/lib/logger";
-import { sendApplicationReceivedEmail } from "@/server/services/email";
+import { sendApplicationReceivedEmail, sendNewCandidateNotificationToAdmins } from "@/server/services/email";
 import type { InterviewAnswers } from "@/domain/types";
 
 const RATE_LIMIT = 5;
@@ -58,6 +60,7 @@ export async function POST(request: NextRequest) {
 
     const answers = parsed.data.answers as InterviewAnswers;
     const completionTimeSeconds = parsed.data.completionTimeSeconds;
+    const photoToken = parsed.data.photoToken;
 
     // Server-side validation
     const errors = validateFullInterview(answers);
@@ -108,6 +111,24 @@ export async function POST(request: NextRequest) {
       return { candidateId: candidate.id, interviewId: interview.id };
     });
 
+    // Link uploaded photo to candidate if provided
+    if (photoToken) {
+      try {
+        const photosDir = join(process.cwd(), "uploads", "candidate-photos");
+        const tokenDir = join(photosDir, photoToken);
+        const candidateDir = join(photosDir, result.candidateId);
+        await access(tokenDir);
+        await rename(tokenDir, candidateDir);
+        await prisma.candidate.update({
+          where: { id: result.candidateId },
+          data: { photoPath: candidateDir },
+        });
+        logger.info("Candidate photo linked", { candidateId: result.candidateId });
+      } catch {
+        logger.warn("Failed to link candidate photo", { photoToken, candidateId: result.candidateId });
+      }
+    }
+
     // Fire-and-forget: trigger AI evaluation
     const baseUrl = process.env.APP_BASE_URL || "http://localhost:3000";
     const internalKey = process.env.AUTH_SECRET || "";
@@ -129,6 +150,17 @@ export async function POST(request: NextRequest) {
     if (answers.basic.email) {
       sendApplicationReceivedEmail(answers.basic.email, answers.basic.fullName).catch(() => {});
     }
+
+    // Fire-and-forget: notify all active admins
+    const restaurantName = answers.basic.restaurantId
+      ? (await prisma.restaurant.findUnique({ where: { id: answers.basic.restaurantId }, select: { name: true } }))?.name || "Sin restaurante"
+      : "Sin restaurante";
+    sendNewCandidateNotificationToAdmins(
+      answers.basic.fullName,
+      answers.basic.positionApplied,
+      restaurantName,
+      result.candidateId
+    ).catch(() => {});
 
     return NextResponse.json({
       success: true,

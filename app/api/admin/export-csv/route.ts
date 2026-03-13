@@ -103,6 +103,7 @@ export async function GET(request: NextRequest) {
         entityType: "Report",
         entityId: "all",
         details: JSON.stringify({ count: rows.length }),
+        performedBy: session.userId,
       },
     });
 

@@ -66,6 +66,7 @@ export const interviewSubmissionSchema = z.object({
     }),
   }),
   completionTimeSeconds: z.number().int().positive().optional(),
+  photoToken: z.string().uuid().optional(),
 });
 
 // Onboarding update
@@ -153,4 +154,22 @@ export const restaurantSchema = z.object({
   slug: z.string().min(1).max(50).regex(/^[a-z0-9-]+$/, "Solo letras minúsculas, números y guiones"),
   address: z.string().max(300).optional().default(""),
   isActive: z.boolean().optional().default(true),
+});
+
+// Admin user CRUD
+export const adminUserCreateSchema = z.object({
+  email: z.string().email("Email inválido"),
+  password: z.string().min(8, "La contraseña debe tener al menos 8 caracteres"),
+  role: z.enum(["SUPER_ADMIN", "GESTOR"]),
+  restaurantIds: z.array(z.string()).default([]),
+});
+
+export const adminUserUpdateSchema = z.object({
+  role: z.enum(["SUPER_ADMIN", "GESTOR"]).optional(),
+  isActive: z.boolean().optional(),
+  restaurantIds: z.array(z.string()).optional(),
+});
+
+export const adminPasswordResetSchema = z.object({
+  password: z.string().min(8, "La contraseña debe tener al menos 8 caracteres"),
 });

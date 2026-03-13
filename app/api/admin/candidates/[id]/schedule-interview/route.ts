@@ -57,6 +57,7 @@ export async function POST(
           entityType: "Candidate",
           entityId: id,
           details: JSON.stringify({ scheduledAt }),
+          performedBy: session.userId,
         },
       });
     });

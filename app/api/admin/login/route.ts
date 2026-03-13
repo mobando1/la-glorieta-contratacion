@@ -41,6 +41,13 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    if (!user.isActive) {
+      return NextResponse.json(
+        { error: "Tu cuenta ha sido desactivada. Contacta al administrador." },
+        { status: 403 }
+      );
+    }
+
     const restaurantIds = user.restaurantAssignments.map((a) => a.restaurantId);
     await createSession(user.id, user.email, user.role, restaurantIds);
 

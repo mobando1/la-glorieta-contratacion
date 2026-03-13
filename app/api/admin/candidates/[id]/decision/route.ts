@@ -105,6 +105,7 @@ export async function POST(
             overrideReason: isOverride ? overrideReason : null,
             adminEmail: session.email,
           }),
+          performedBy: session.userId,
         },
       });
     });

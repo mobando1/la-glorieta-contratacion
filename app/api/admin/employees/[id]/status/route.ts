@@ -123,6 +123,7 @@ export async function PUT(
             to: toStatus,
             reason: parsed.data.terminationReason,
           }),
+          performedBy: session.userId,
         },
       });
     });

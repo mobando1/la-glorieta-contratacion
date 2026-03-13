@@ -71,6 +71,7 @@ export async function POST(
           details: JSON.stringify({
             decision: parsed.data.decision,
           }),
+          performedBy: session.userId,
         },
       });
     });

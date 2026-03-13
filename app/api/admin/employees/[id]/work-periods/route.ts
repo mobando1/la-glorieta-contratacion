@@ -106,6 +106,7 @@ export async function POST(
         entityType: "WorkPeriod",
         entityId: workPeriod.id,
         details: JSON.stringify({ employeeId: id }),
+        performedBy: session.userId,
       },
     });
 

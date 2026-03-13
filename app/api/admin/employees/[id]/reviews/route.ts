@@ -122,6 +122,7 @@ export async function POST(
           overallScore,
           wouldRehire: parsed.data.wouldRehire,
         }),
+        performedBy: session.userId,
       },
     });
 

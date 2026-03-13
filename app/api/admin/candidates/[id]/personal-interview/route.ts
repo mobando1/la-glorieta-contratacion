@@ -131,6 +131,7 @@ export async function POST(
           entityType: "Candidate",
           entityId: id,
           details: JSON.stringify({ personalInterviewId }),
+          performedBy: session.userId,
         },
       });
     });

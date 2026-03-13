@@ -188,6 +188,16 @@ export async function GET() {
       else if (row.employmentStatus === "NO_RECONTRATAR") pool.noRecontratar = row._count;
     }
 
+    // Resolve performedBy to admin emails
+    const performerIds = [...new Set(recentActivity.map((a) => a.performedBy).filter((id): id is string => id !== null))];
+    const performers = performerIds.length > 0
+      ? await prisma.adminUser.findMany({
+          where: { id: { in: performerIds } },
+          select: { id: true, email: true },
+        })
+      : [];
+    const performerMap = new Map(performers.map((p) => [p.id, p.email]));
+
     return NextResponse.json({
       pipeline,
       pool,
@@ -208,6 +218,7 @@ export async function GET() {
         entityId: a.entityId,
         details: a.details,
         createdAt: a.createdAt.toISOString(),
+        performedBy: a.performedBy ? performerMap.get(a.performedBy) || null : null,
       })),
       employees: {
         total: employeesTotal,

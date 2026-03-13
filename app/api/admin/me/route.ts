@@ -8,6 +8,7 @@ export async function GET() {
   }
 
   return NextResponse.json({
+    userId: session.userId,
     email: session.email,
     role: session.role,
     restaurantIds: session.restaurantIds,

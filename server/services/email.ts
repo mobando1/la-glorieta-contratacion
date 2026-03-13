@@ -1,4 +1,5 @@
 import { logger } from "@/lib/logger";
+import { prisma } from "@/server/db/prisma";
 
 let resendInstance: any = null;
 
@@ -232,4 +233,46 @@ export async function sendInterviewInvitation(
   `;
 
   return sendEmail(to, subject, html);
+}
+
+export async function sendNewCandidateNotificationToAdmins(
+  candidateName: string,
+  position: string,
+  restaurantName: string,
+  candidateId: string
+): Promise<void> {
+  try {
+    const admins = await prisma.adminUser.findMany({
+      where: { isActive: true },
+      select: { email: true },
+    });
+
+    if (admins.length === 0) return;
+
+    const baseUrl = process.env.APP_BASE_URL || "http://localhost:3000";
+    const candidateUrl = `${baseUrl}/admin/candidatos/${candidateId}`;
+
+    const subject = `Nuevo candidato: ${candidateName} — ${restaurantName}`;
+    const html = `
+      <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto;">
+        <h2 style="color: #2563eb;">Nuevo candidato registrado</h2>
+        <p><strong>Nombre:</strong> ${candidateName}</p>
+        <p><strong>Puesto:</strong> ${position}</p>
+        <p><strong>Restaurante:</strong> ${restaurantName}</p>
+        <div style="text-align: center; margin: 24px 0;">
+          <a href="${candidateUrl}" style="display: inline-block; background-color: #2563eb; color: white; text-decoration: none; padding: 12px 24px; border-radius: 8px; font-weight: 600;">
+            Ver candidato
+          </a>
+        </div>
+        <hr style="border: none; border-top: 1px solid #e5e7eb; margin: 24px 0;" />
+        <p style="color: #6b7280; font-size: 14px;">Sistema de Contratación — La Glorieta y Salomé</p>
+      </div>
+    `;
+
+    await Promise.allSettled(
+      admins.map((admin) => sendEmail(admin.email, subject, html))
+    );
+  } catch (error) {
+    logger.error("Failed to notify admins of new candidate", { error: String(error) });
+  }
 }
