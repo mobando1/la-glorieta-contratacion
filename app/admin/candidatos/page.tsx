@@ -23,6 +23,7 @@ interface CandidateRow {
   isDuplicate: boolean;
   restaurantName: string | null;
   restaurantId: string | null;
+  hasPhoto: boolean;
 }
 
 interface RestaurantOption {
@@ -355,13 +356,28 @@ function CandidatosContent() {
             ) : (
               candidates.map((c) => (
                 <tr key={c.id} className="transition-colors hover:bg-primary-50/30">
-                  <td className="px-4 py-3 font-medium text-gray-900">
-                    {c.fullName}
-                    {c.isDuplicate && (
-                      <span className="ml-2 inline-block rounded-full bg-gray-100 px-2 py-0.5 text-xs text-gray-500">
-                        Duplicado
+                  <td className="px-4 py-3">
+                    <div className="flex items-center gap-2">
+                      {c.hasPhoto ? (
+                        <img
+                          src={`/api/admin/candidates/${c.id}/photo`}
+                          alt=""
+                          className="h-8 w-8 shrink-0 rounded-full object-cover"
+                        />
+                      ) : (
+                        <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-gray-200 text-xs font-medium text-gray-500">
+                          {c.fullName.split(" ").map(n => n[0]).slice(0, 2).join("").toUpperCase()}
+                        </div>
+                      )}
+                      <span className="font-medium text-gray-900">
+                        {c.fullName}
+                        {c.isDuplicate && (
+                          <span className="ml-2 inline-block rounded-full bg-gray-100 px-2 py-0.5 text-xs font-normal text-gray-500">
+                            Duplicado
+                          </span>
+                        )}
                       </span>
-                    )}
+                    </div>
                   </td>
                   <td className="px-4 py-3 text-gray-600">
                     {POSITION_LABELS[c.positionApplied as Position] || c.positionApplied}

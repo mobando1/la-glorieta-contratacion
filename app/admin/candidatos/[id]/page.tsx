@@ -358,12 +358,16 @@ export default function CandidatoDetailPage({
           &larr; Candidatos
         </Link>
         <div className="mt-1 flex items-center gap-3">
-          {candidate.photoPath && (
+          {candidate.photoPath ? (
             <img
               src={`/api/admin/candidates/${candidate.id}/photo`}
               alt={`Foto de ${candidate.fullName}`}
-              className="h-14 w-14 rounded-full object-cover border-2 border-primary-200"
+              className="h-20 w-20 rounded-full object-cover border-2 border-primary-200"
             />
+          ) : (
+            <div className="flex h-20 w-20 items-center justify-center rounded-full border-2 border-gray-200 bg-gray-200 text-xl font-semibold text-gray-500">
+              {candidate.fullName.split(" ").map(n => n[0]).slice(0, 2).join("").toUpperCase()}
+            </div>
           )}
           <div>
             <h1 className="text-2xl font-bold text-gray-900">{candidate.fullName}</h1>

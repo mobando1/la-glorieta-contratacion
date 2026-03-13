@@ -75,6 +75,7 @@ export async function GET(request: NextRequest) {
         redFlags: evaluation ? JSON.parse(evaluation.redFlags) : [],
         requiresHumanReview: evaluation?.requiresHumanReview ?? false,
         adminDecision: decision?.decision ?? null,
+        hasPhoto: !!c.photoPath,
         isDuplicate: duplicateCount > 0,
         duplicateCount,
       };
