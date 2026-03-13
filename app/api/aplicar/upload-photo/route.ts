@@ -2,45 +2,16 @@ import { NextRequest, NextResponse } from "next/server";
 import { writeFile, mkdir } from "fs/promises";
 import { join } from "path";
 import { v4 as uuidv4 } from "uuid";
-import { prisma } from "@/server/db/prisma";
 import { logger } from "@/lib/logger";
+import { checkRateLimit } from "@/lib/rate-limit";
 
 const MAX_FILE_SIZE = 3 * 1024 * 1024; // 3MB
 const ALLOWED_TYPES = ["image/jpeg", "image/png"];
-const RATE_LIMIT = 10;
-const RATE_WINDOW_MS = 60 * 60 * 1000; // 1 hour
-
-async function checkRateLimit(ip: string): Promise<boolean> {
-  const key = `photo-${ip}`;
-  const now = new Date();
-  const windowStart = new Date(now.getTime() - RATE_WINDOW_MS);
-
-  const entry = await prisma.rateLimit.findUnique({ where: { id: key } });
-
-  if (!entry || entry.windowStart < windowStart) {
-    await prisma.rateLimit.upsert({
-      where: { id: key },
-      update: { count: 1, windowStart: now },
-      create: { id: key, count: 1, windowStart: now },
-    });
-    return true;
-  }
-
-  if (entry.count >= RATE_LIMIT) {
-    return false;
-  }
-
-  await prisma.rateLimit.update({
-    where: { id: key },
-    data: { count: entry.count + 1 },
-  });
-  return true;
-}
 
 export async function POST(request: NextRequest) {
   try {
     const ip = request.headers.get("x-forwarded-for") || "unknown";
-    if (!(await checkRateLimit(ip))) {
+    if (!(await checkRateLimit(ip, 10, { prefix: "photo-" }))) {
       return NextResponse.json(
         { error: "Demasiadas solicitudes. Intenta más tarde." },
         { status: 429 }

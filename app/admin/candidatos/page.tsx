@@ -57,6 +57,8 @@ function CandidatosContent() {
   const [filterRestaurant, setFilterRestaurant] = useState(searchParams.get("restaurant") || "");
   const [searchQuery, setSearchQuery] = useState(searchParams.get("search") || "");
   const [debouncedSearch, setDebouncedSearch] = useState(searchParams.get("search") || "");
+  const [filterDateFrom, setFilterDateFrom] = useState("");
+  const [filterDateTo, setFilterDateTo] = useState("");
   const [restaurants, setRestaurants] = useState<RestaurantOption[]>([]);
 
   // Debounce search
@@ -75,7 +77,7 @@ function CandidatosContent() {
       .catch(() => {});
   }, []);
 
-  const fetchCandidates = useCallback(async () => {
+  const fetchCandidates = useCallback(async (signal?: AbortSignal) => {
     setLoading(true);
     setError(null);
     const params = new URLSearchParams();
@@ -86,9 +88,11 @@ function CandidatosContent() {
     if (filterReview) params.set("requiresReview", "true");
     if (filterRestaurant) params.set("restaurant", filterRestaurant);
     if (debouncedSearch) params.set("search", debouncedSearch);
+    if (filterDateFrom) params.set("dateFrom", filterDateFrom);
+    if (filterDateTo) params.set("dateTo", filterDateTo);
 
     try {
-      const res = await fetch(`/api/admin/candidates?${params}`);
+      const res = await fetch(`/api/admin/candidates?${params}`, { signal });
       if (res.status === 401) {
         router.push("/admin/login");
         return;
@@ -98,15 +102,18 @@ function CandidatosContent() {
       setCandidates(data.candidates);
       setTotalPages(data.totalPages);
       setTotal(data.total);
-    } catch {
+    } catch (err) {
+      if (err instanceof DOMException && err.name === "AbortError") return;
       setError("No se pudieron cargar los candidatos. Verifica tu conexión e intenta de nuevo.");
     } finally {
       setLoading(false);
     }
-  }, [page, filterPosition, filterStatus, filterRedFlags, filterReview, filterRestaurant, debouncedSearch, router]);
+  }, [page, filterPosition, filterStatus, filterRedFlags, filterReview, filterRestaurant, debouncedSearch, filterDateFrom, filterDateTo, router]);
 
   useEffect(() => {
-    fetchCandidates();
+    const controller = new AbortController();
+    fetchCandidates(controller.signal);
+    return () => controller.abort();
   }, [fetchCandidates]);
 
   async function handleExportCSV() {
@@ -250,6 +257,26 @@ function CandidatosContent() {
           </div>
 
           <div>
+            <label className="mb-1 block text-xs font-medium text-gray-500">Desde</label>
+            <input
+              type="date"
+              value={filterDateFrom}
+              onChange={(e) => { setFilterDateFrom(e.target.value); setPage(1); }}
+              className="rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm ring-1 ring-gray-100 focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500"
+            />
+          </div>
+
+          <div>
+            <label className="mb-1 block text-xs font-medium text-gray-500">Hasta</label>
+            <input
+              type="date"
+              value={filterDateTo}
+              onChange={(e) => { setFilterDateTo(e.target.value); setPage(1); }}
+              className="rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm ring-1 ring-gray-100 focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500"
+            />
+          </div>
+
+          <div>
             <label className="mb-1 block text-xs font-medium text-gray-500">Estado</label>
             <div className="flex flex-wrap gap-1">
               {STATUS_OPTIONS.map((opt) => (
@@ -325,7 +352,7 @@ function CandidatosContent() {
                 <td colSpan={8} className="px-4 py-8 text-center">
                   <p className="mb-3 text-red-600">{error}</p>
                   <button
-                    onClick={fetchCandidates}
+                    onClick={() => fetchCandidates()}
                     className="rounded-lg bg-primary-600 px-4 py-2 text-sm font-medium text-white hover:bg-primary-700"
                   >
                     Reintentar

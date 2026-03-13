@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/server/db/prisma";
 import { getAuthorizedSession } from "@/server/auth/authorize";
+import { safeJsonParse } from "@/lib/utils";
+import { logger } from "@/lib/logger";
 
 export async function GET(
   _request: NextRequest,
@@ -62,6 +64,18 @@ export async function GET(
       orderBy: { createdAt: "desc" },
     });
 
+    // Fetch audit log for timeline + email history
+    const auditLogs = await prisma.auditLog.findMany({
+      where: { entityId: id, entityType: "Candidate" },
+      orderBy: { createdAt: "asc" },
+      select: {
+        action: true,
+        details: true,
+        performedBy: true,
+        createdAt: true,
+      },
+    });
+
     const onlineEvaluation = candidate.evaluations.find((e) => e.evaluationType === "ONLINE") || candidate.evaluations.find((e) => !e.personalInterviewId) || null;
     const personalEvaluation = candidate.evaluations.find((e) => e.evaluationType === "PERSONAL") || null;
     const interview = candidate.interviews[0] || null;
@@ -78,33 +92,34 @@ export async function GET(
       interview: interview
         ? {
             ...interview,
-            answers: JSON.parse(interview.answers),
+            answers: safeJsonParse(interview.answers, {}),
           }
         : null,
       evaluation: onlineEvaluation
         ? {
             ...onlineEvaluation,
-            redFlags: JSON.parse(onlineEvaluation.redFlags),
+            redFlags: safeJsonParse(onlineEvaluation.redFlags, []),
           }
         : null,
       personalInterview: personalInterview
         ? {
             ...personalInterview,
-            adminObservations: JSON.parse(personalInterview.adminObservations),
-            answers: JSON.parse(personalInterview.answers),
+            adminObservations: safeJsonParse(personalInterview.adminObservations, {}),
+            answers: safeJsonParse(personalInterview.answers, {}),
           }
         : null,
       personalEvaluation: personalEvaluation
         ? {
             ...personalEvaluation,
-            redFlags: JSON.parse(personalEvaluation.redFlags),
+            redFlags: safeJsonParse(personalEvaluation.redFlags, []),
           }
         : null,
       decisions: candidate.decisions,
       duplicates,
+      auditLogs,
     });
   } catch (error) {
-    console.error("Error fetching candidate:", error);
+    logger.error("Error fetching candidate", { error: String(error) });
     return NextResponse.json(
       { error: "Error interno del servidor" },
       { status: 500 }

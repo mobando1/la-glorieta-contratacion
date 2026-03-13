@@ -204,13 +204,38 @@ export default function DashboardPage() {
             );
           })}
         </div>
-        {(baseDeDatos > 0 || noContinuar > 0) && (
-          <div className="mt-4 flex gap-4 border-t border-gray-100 pt-3">
-            <span className="text-sm text-gray-500">
-              Base de Datos: <span className="font-semibold text-gray-700">{baseDeDatos}</span>
+        {/* Conversion funnel percentages */}
+        {stats.kpis.totalCandidates > 0 && (
+          <div className="mt-4 flex flex-wrap gap-3 border-t border-gray-100 pt-3">
+            {(() => {
+              const total = stats.kpis.totalCandidates;
+              const evaluated = (stats.pipeline["EVALUADO"] || 0) + (stats.pipeline["PRESELECCIONADO"] || 0) + (stats.pipeline["CITADO_ENTREVISTA"] || 0) + (stats.pipeline["ENTREVISTA_REALIZADA"] || 0) + (stats.pipeline["EVALUADO_ENTREVISTA"] || 0) + (stats.pipeline["CONTRATADO"] || 0) + baseDeDatos + noContinuar;
+              const preselected = (stats.pipeline["PRESELECCIONADO"] || 0) + (stats.pipeline["CITADO_ENTREVISTA"] || 0) + (stats.pipeline["ENTREVISTA_REALIZADA"] || 0) + (stats.pipeline["EVALUADO_ENTREVISTA"] || 0) + (stats.pipeline["CONTRATADO"] || 0);
+              const interviewed = (stats.pipeline["ENTREVISTA_REALIZADA"] || 0) + (stats.pipeline["EVALUADO_ENTREVISTA"] || 0) + (stats.pipeline["CONTRATADO"] || 0);
+              const hired = stats.pipeline["CONTRATADO"] || 0;
+              const pct = (n: number) => total > 0 ? Math.round((n / total) * 100) : 0;
+              return (
+                <>
+                  <span className="rounded-full bg-purple-50 px-2.5 py-1 text-xs font-medium text-purple-700">
+                    Evaluados: {pct(evaluated)}%
+                  </span>
+                  <span className="rounded-full bg-primary-50 px-2.5 py-1 text-xs font-medium text-primary-700">
+                    Preseleccionados: {pct(preselected)}%
+                  </span>
+                  <span className="rounded-full bg-cyan-50 px-2.5 py-1 text-xs font-medium text-cyan-700">
+                    Entrevistados: {pct(interviewed)}%
+                  </span>
+                  <span className="rounded-full bg-teal-50 px-2.5 py-1 text-xs font-medium text-teal-700">
+                    Contratados: {pct(hired)}%
+                  </span>
+                </>
+              );
+            })()}
+            <span className="rounded-full bg-yellow-50 px-2.5 py-1 text-xs font-medium text-yellow-700">
+              Base de Datos: {baseDeDatos}
             </span>
-            <span className="text-sm text-gray-500">
-              No Continuar: <span className="font-semibold text-gray-700">{noContinuar}</span>
+            <span className="rounded-full bg-red-50 px-2.5 py-1 text-xs font-medium text-red-700">
+              No Continuar: {noContinuar}
             </span>
           </div>
         )}

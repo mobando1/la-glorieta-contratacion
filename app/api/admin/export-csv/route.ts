@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/server/db/prisma";
 import { getAuthorizedSession } from "@/server/auth/authorize";
+import { logger } from "@/lib/logger";
 
 export async function GET(request: NextRequest) {
   try {
@@ -114,7 +115,7 @@ export async function GET(request: NextRequest) {
       },
     });
   } catch (error) {
-    console.error("CSV export error:", error);
+    logger.error("CSV export error", { error: String(error) });
     return NextResponse.json(
       { error: "Error al exportar" },
       { status: 500 }

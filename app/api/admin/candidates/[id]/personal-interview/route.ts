@@ -6,6 +6,7 @@ import { validateTransition } from "@/domain/candidate-states";
 import { runPersonalInterviewEvaluation } from "@/server/jobs/evaluation-runner";
 import { sendPostInterviewPassedEmail } from "@/server/services/email";
 import type { CandidateStatus } from "@/domain/types";
+import { logger } from "@/lib/logger";
 
 export async function GET(
   _request: NextRequest,
@@ -138,7 +139,7 @@ export async function POST(
 
     // Fire-and-forget: trigger AI evaluation
     runPersonalInterviewEvaluation(id, personalInterviewId!).catch((err) => {
-      console.error("Background personal interview evaluation failed:", err);
+      logger.error("Background personal interview evaluation failed", { error: String(err) });
     });
 
     // Fire-and-forget: send post-interview email

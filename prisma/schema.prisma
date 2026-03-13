@@ -41,6 +41,12 @@ model Candidate {
   evaluations         AIEvaluation[]
   decisions           AdminDecision[]
   employee            Employee?
+
+  @@index([phone])
+  @@index([status])
+  @@index([createdAt])
+  @@index([restaurantId])
+  @@index([positionApplied])
 }
 
 model ApplicationInterview {
@@ -92,6 +98,9 @@ model AIEvaluation {
   candidate         Candidate             @relation(fields: [candidateId], references: [id])
   interview         ApplicationInterview?  @relation(fields: [interviewId], references: [id])
   personalInterview PersonalInterview?     @relation(fields: [personalInterviewId], references: [id])
+
+  @@index([candidateId])
+  @@index([evaluationType])
 }
 
 model AdminDecision {
@@ -136,6 +145,9 @@ model AuditLog {
   details     String?
   performedBy String?
   createdAt   DateTime @default(now())
+
+  @@index([entityId, entityType])
+  @@index([createdAt])
 }
 
 model RateLimit {
@@ -176,6 +188,9 @@ model Employee {
   documents          Document[]
   workPeriods        WorkPeriod[]
   performanceReviews PerformanceReview[]
+
+  @@index([employmentStatus])
+  @@index([restaurantId])
 }
 
 model Document {

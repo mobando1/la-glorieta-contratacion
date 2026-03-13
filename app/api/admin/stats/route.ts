@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/server/db/prisma";
 import { getAuthorizedSession } from "@/server/auth/authorize";
 import { CANDIDATE_STATUSES } from "@/domain/types";
+import { logger } from "@/lib/logger";
 
 export async function GET() {
   try {
@@ -227,7 +228,7 @@ export async function GET() {
       },
     });
   } catch (error) {
-    console.error("Stats error:", error);
+    logger.error("Stats error", { error: String(error) });
     return NextResponse.json(
       { error: "Error interno del servidor" },
       { status: 500 }

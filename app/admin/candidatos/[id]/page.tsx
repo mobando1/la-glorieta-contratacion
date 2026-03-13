@@ -82,6 +82,7 @@ export default function CandidatoDetailPage({
   const [personalEvaluation, setPersonalEvaluation] = useState<EvaluationDetail | null>(null);
   const [decisions, setDecisions] = useState<DecisionDetail[]>([]);
   const [duplicates, setDuplicates] = useState<DuplicateInfo[]>([]);
+  const [auditLogs, setAuditLogs] = useState<{ action: string; details: string | null; performedBy: string | null; createdAt: string }[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<Tab>("resumen");
@@ -131,6 +132,7 @@ export default function CandidatoDetailPage({
       setPersonalEvaluation(data.personalEvaluation);
       setDecisions(data.decisions);
       setDuplicates(data.duplicates);
+      setAuditLogs(data.auditLogs || []);
     } catch {
       setError("No se pudo cargar el candidato. Verifica tu conexión e intenta de nuevo.");
     } finally {
@@ -596,6 +598,79 @@ export default function CandidatoDetailPage({
                   </summary>
                   <p className="mt-2 whitespace-pre-wrap text-gray-600">{evaluation.rationale}</p>
                 </details>
+              </div>
+            )}
+
+            {/* Timeline */}
+            {auditLogs.length > 0 && (
+              <div className="rounded-card bg-white p-5 shadow-card">
+                <h2 className="mb-4 text-sm font-semibold uppercase text-gray-500">Timeline</h2>
+                <div className="relative space-y-0">
+                  {auditLogs.filter((l) => l.action !== "email_sent").map((log, i) => {
+                    const details = log.details ? (() => { try { return JSON.parse(log.details); } catch { return null; } })() : null;
+                    const actionLabels: Record<string, string> = {
+                      application_submitted: "Aplicación recibida",
+                      ai_evaluation_complete: "Evaluación IA completada",
+                      admin_decision: "Decisión del admin",
+                      final_decision: "Decisión final",
+                      interview_scheduled: "Citado a entrevista",
+                      personal_interview_complete: "Entrevista personal completada",
+                      personal_ai_evaluation_complete: "Evaluación IA (entrevista) completada",
+                      status_changed: "Estado cambiado",
+                    };
+                    return (
+                      <div key={i} className="flex gap-3">
+                        <div className="flex flex-col items-center">
+                          <div className="h-2.5 w-2.5 rounded-full bg-primary-500 ring-2 ring-primary-100" />
+                          {i < auditLogs.filter((l) => l.action !== "email_sent").length - 1 && (
+                            <div className="w-0.5 flex-1 bg-gray-200" />
+                          )}
+                        </div>
+                        <div className="pb-4">
+                          <p className="text-sm font-medium text-gray-800">
+                            {actionLabels[log.action] || log.action}
+                          </p>
+                          {details?.decision && (
+                            <p className="text-xs text-gray-500">
+                              Decisión: <StatusBadge status={details.decision} />
+                            </p>
+                          )}
+                          <p className="text-xs text-gray-400">
+                            {new Date(log.createdAt).toLocaleString("es-CO")}
+                            {log.performedBy ? ` — ${log.performedBy}` : ""}
+                          </p>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+
+            {/* Email History */}
+            {auditLogs.some((l) => l.action === "email_sent") && (
+              <div className="rounded-card bg-white p-5 shadow-card">
+                <h2 className="mb-3 text-sm font-semibold uppercase text-gray-500">Emails enviados</h2>
+                <div className="space-y-2">
+                  {auditLogs
+                    .filter((l) => l.action === "email_sent")
+                    .map((log, i) => {
+                      const details = log.details ? (() => { try { return JSON.parse(log.details); } catch { return null; } })() : null;
+                      return (
+                        <div key={i} className="rounded-lg border border-gray-100 p-3">
+                          <div className="flex items-center justify-between">
+                            <p className="text-sm font-medium text-gray-700">{details?.subject || "Email"}</p>
+                            <span className="text-xs text-gray-400">
+                              {new Date(log.createdAt).toLocaleString("es-CO")}
+                            </span>
+                          </div>
+                          {details?.to && (
+                            <p className="text-xs text-gray-500">Para: {details.to}</p>
+                          )}
+                        </div>
+                      );
+                    })}
+                </div>
               </div>
             )}
           </div>

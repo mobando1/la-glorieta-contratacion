@@ -5,43 +5,15 @@ import { prisma } from "@/server/db/prisma";
 import { validateFullInterview, normalizePhone } from "@/domain/validation";
 import { interviewSubmissionSchema } from "@/domain/schemas";
 import { logger } from "@/lib/logger";
+import { checkRateLimit } from "@/lib/rate-limit";
 import { sendApplicationReceivedEmail, sendNewCandidateNotificationToAdmins } from "@/server/services/email";
 import type { InterviewAnswers } from "@/domain/types";
-
-const RATE_LIMIT = 5;
-const RATE_WINDOW_MS = 60 * 60 * 1000; // 1 hour
-
-async function checkRateLimit(ip: string): Promise<boolean> {
-  const now = new Date();
-  const windowStart = new Date(now.getTime() - RATE_WINDOW_MS);
-
-  const entry = await prisma.rateLimit.findUnique({ where: { id: ip } });
-
-  if (!entry || entry.windowStart < windowStart) {
-    await prisma.rateLimit.upsert({
-      where: { id: ip },
-      update: { count: 1, windowStart: now },
-      create: { id: ip, count: 1, windowStart: now },
-    });
-    return true;
-  }
-
-  if (entry.count >= RATE_LIMIT) {
-    return false;
-  }
-
-  await prisma.rateLimit.update({
-    where: { id: ip },
-    data: { count: entry.count + 1 },
-  });
-  return true;
-}
 
 export async function POST(request: NextRequest) {
   try {
     // Rate limiting
     const ip = request.headers.get("x-forwarded-for") || "unknown";
-    if (!(await checkRateLimit(ip))) {
+    if (!(await checkRateLimit(ip, 5))) {
       return NextResponse.json(
         { error: "Has enviado demasiadas solicitudes. Intenta más tarde." },
         { status: 429 }
