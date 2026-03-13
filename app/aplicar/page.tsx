@@ -4,6 +4,7 @@ import { useState, useRef, useCallback } from "react";
 import { getInterviewSteps } from "@/domain/interview-questions";
 import { useToast } from "@/components/ui/toast";
 import { StepIndicator } from "@/components/interview/step-indicator";
+import { PhotoUpload } from "@/components/interview/photo-upload";
 import type { Question } from "@/domain/interview-questions";
 import type { Position } from "@/domain/types";
 
@@ -23,6 +24,7 @@ const INITIAL_DATA: FormData = {
     numberOfChildren: "",
     hasExperience: null,
     experienceDetails: "",
+    photoToken: null,
   },
   availability: {
     canWorkWeekends: null,
@@ -201,10 +203,11 @@ export default function AplicarPage() {
     };
 
     try {
+      const photoToken = formData.basic.photoToken as string | null;
       const res = await fetch("/api/aplicar", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ answers, completionTimeSeconds }),
+        body: JSON.stringify({ answers, completionTimeSeconds, photoToken: photoToken || undefined }),
       });
 
       if (res.ok) {
@@ -306,6 +309,12 @@ export default function AplicarPage() {
                   />
                 );
               })}
+              {step.id === "basic" && (
+                <PhotoUpload
+                  currentToken={formData.basic.photoToken as string | null}
+                  onUploaded={(token) => updateField("basic", "photoToken", token)}
+                />
+              )}
             </div>
           )}
         </div>

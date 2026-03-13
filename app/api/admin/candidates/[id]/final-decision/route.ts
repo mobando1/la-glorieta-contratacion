@@ -2,7 +2,6 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/server/db/prisma";
 import { getAuthorizedSession } from "@/server/auth/authorize";
 import { validateTransition } from "@/domain/candidate-states";
-import { sendRejectionEmail, sendDatabaseSavedEmail, sendHiredEmail } from "@/server/services/email";
 import type { CandidateStatus } from "@/domain/types";
 import { z } from "zod";
 
@@ -75,17 +74,6 @@ export async function POST(
         },
       });
     });
-
-    // Fire-and-forget: send notification email based on decision
-    if (candidate.email) {
-      if (parsed.data.decision === "CONTRATADO") {
-        sendHiredEmail(candidate.email, candidate.fullName, candidate.positionApplied, candidate.restaurant?.name).catch(() => {});
-      } else if (parsed.data.decision === "NO_CONTINUAR") {
-        sendRejectionEmail(candidate.email, candidate.fullName, candidate.restaurant?.name).catch(() => {});
-      } else if (parsed.data.decision === "BASE_DE_DATOS") {
-        sendDatabaseSavedEmail(candidate.email, candidate.fullName, candidate.restaurant?.name).catch(() => {});
-      }
-    }
 
     return NextResponse.json({ ok: true });
   } catch (error) {

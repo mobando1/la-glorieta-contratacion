@@ -10,6 +10,7 @@ import { StatusBadge } from "@/components/ui/badges";
 import { PersonalInterviewForm } from "@/components/admin/personal-interview-form";
 import { calculateCombinedScore } from "@/domain/personal-scoring";
 import { WhatsAppShareButton } from "@/components/admin/whatsapp-share";
+import { EmailDraftModal } from "@/components/admin/email-draft-modal";
 import type { Position, CandidateStatus, InterviewAnswers, AdminObservations, PersonalInterviewAnswers } from "@/domain/types";
 
 interface CandidateDetail {
@@ -21,6 +22,7 @@ interface CandidateDetail {
   status: string;
   createdAt: string;
   notesAdmin: string | null;
+  photoPath: string | null;
   restaurant: { id: string; name: string } | null;
 }
 
@@ -98,6 +100,12 @@ export default function CandidatoDetailPage({
   const [finalDecision, setFinalDecision] = useState("");
   const [finalNotes, setFinalNotes] = useState("");
 
+  // Email draft flow
+  const [showEmailDraft, setShowEmailDraft] = useState(false);
+  const [emailDecision, setEmailDecision] = useState("");
+  const [showFinalEmailDraft, setShowFinalEmailDraft] = useState(false);
+  const [finalEmailDecision, setFinalEmailDecision] = useState("");
+
   // Hire action
   const [generatingLink, setGeneratingLink] = useState(false);
   const [onboardingLink, setOnboardingLink] = useState<string | null>(null);
@@ -141,6 +149,8 @@ export default function CandidatoDetailPage({
       });
       if (res.ok) {
         showToast("Decisión guardada correctamente", "success");
+        setEmailDecision(selectedDecision);
+        setShowEmailDraft(true);
         await fetchData();
         setSelectedDecision("");
         setNotes("");
@@ -260,6 +270,8 @@ export default function CandidatoDetailPage({
       });
       if (res.ok) {
         showToast("Decisión final guardada", "success");
+        setFinalEmailDecision(finalDecision);
+        setShowFinalEmailDraft(true);
         await fetchData();
         setFinalDecision("");
         setFinalNotes("");
@@ -345,7 +357,18 @@ export default function CandidatoDetailPage({
         >
           &larr; Candidatos
         </Link>
-        <h1 className="mt-1 text-2xl font-bold text-gray-900">{candidate.fullName}</h1>
+        <div className="mt-1 flex items-center gap-3">
+          {candidate.photoPath && (
+            <img
+              src={`/api/admin/candidates/${candidate.id}/photo`}
+              alt={`Foto de ${candidate.fullName}`}
+              className="h-14 w-14 rounded-full object-cover border-2 border-primary-200"
+            />
+          )}
+          <div>
+            <h1 className="text-2xl font-bold text-gray-900">{candidate.fullName}</h1>
+          </div>
+        </div>
         <div className="mt-1 flex items-center gap-2">
           <StatusBadge status={candidate.status} />
           <span className="text-sm text-gray-500">
@@ -772,6 +795,26 @@ export default function CandidatoDetailPage({
                     >
                       {submittingFinal ? "Guardando..." : "Confirmar Decisión Final"}
                     </button>
+
+                    {/* Email draft panel after final decision */}
+                    {showFinalEmailDraft && candidate && (
+                      <div className="mt-4">
+                        <EmailDraftModal
+                          candidateId={id}
+                          candidateEmail={candidate.email}
+                          decision={finalEmailDecision}
+                          onSent={() => {
+                            setShowFinalEmailDraft(false);
+                            setFinalEmailDecision("");
+                            showToast("Email enviado al candidato", "success");
+                          }}
+                          onClose={() => {
+                            setShowFinalEmailDraft(false);
+                            setFinalEmailDecision("");
+                          }}
+                        />
+                      </div>
+                    )}
                   </div>
                 )}
               </div>
@@ -852,7 +895,25 @@ export default function CandidatoDetailPage({
               </div>
             )}
 
-            {!canDecide && (
+            {/* Email draft panel after initial decision */}
+            {showEmailDraft && candidate && (
+              <EmailDraftModal
+                candidateId={id}
+                candidateEmail={candidate.email}
+                decision={emailDecision}
+                onSent={() => {
+                  setShowEmailDraft(false);
+                  setEmailDecision("");
+                  showToast("Email enviado al candidato", "success");
+                }}
+                onClose={() => {
+                  setShowEmailDraft(false);
+                  setEmailDecision("");
+                }}
+              />
+            )}
+
+            {!canDecide && !showEmailDraft && (
               <div className="rounded-card bg-gray-50 p-5 text-center">
                 <p className="text-sm text-gray-500">
                   Estado actual: <StatusBadge status={candidate.status} /> &mdash; no se puede tomar decisión en este estado

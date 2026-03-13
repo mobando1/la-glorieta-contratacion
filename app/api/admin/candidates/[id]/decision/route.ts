@@ -4,7 +4,6 @@ import { getAuthorizedSession } from "@/server/auth/authorize";
 import { validateTransition } from "@/domain/candidate-states";
 import { decisionSchema } from "@/domain/schemas";
 import { logger } from "@/lib/logger";
-import { sendPreselectionEmail, sendRejectionEmail, sendDatabaseSavedEmail } from "@/server/services/email";
 import type { CandidateStatus } from "@/domain/types";
 
 export async function POST(
@@ -109,17 +108,6 @@ export async function POST(
         },
       });
     });
-
-    // Fire-and-forget: send notification email based on decision
-    if (candidate.email) {
-      if (decision === "PRESELECCIONADO") {
-        sendPreselectionEmail(candidate.email, candidate.fullName, candidate.restaurant?.name).catch(() => {});
-      } else if (decision === "NO_CONTINUAR") {
-        sendRejectionEmail(candidate.email, candidate.fullName, candidate.restaurant?.name).catch(() => {});
-      } else if (decision === "BASE_DE_DATOS") {
-        sendDatabaseSavedEmail(candidate.email, candidate.fullName, candidate.restaurant?.name).catch(() => {});
-      }
-    }
 
     return NextResponse.json({ success: true });
   } catch (error) {
