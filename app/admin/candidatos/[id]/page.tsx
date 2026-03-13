@@ -290,7 +290,7 @@ export default function CandidatoDetailPage({
 
   if (loading) {
     return (
-      <div className="p-4 pt-16 lg:p-8 lg:pt-8">
+      <div className="p-4 lg:p-8">
         <div className="mb-6">
           <div className="h-4 w-24 animate-pulse rounded bg-gray-200" />
           <div className="mt-2 h-6 w-48 animate-pulse rounded bg-gray-200" />
@@ -350,7 +350,7 @@ export default function CandidatoDetailPage({
     : null;
 
   return (
-    <div className="p-4 pt-16 lg:p-8 lg:pt-8">
+    <div className="p-4 lg:p-8">
       {/* Breadcrumb */}
       <div className="mb-6">
         <Link

@@ -111,7 +111,7 @@ export default function DashboardPage() {
   if (loading) return <DashboardSkeleton />;
   if (error || !stats) {
     return (
-      <div className="p-4 pt-16 lg:p-8 lg:pt-8">
+      <div className="p-4 lg:p-8">
         <div className="rounded-card bg-white p-8 text-center shadow-card">
           <p className="text-gray-500">{error || "No se pudieron cargar las estadísticas"}</p>
           <button
@@ -130,7 +130,7 @@ export default function DashboardPage() {
   const noContinuar = stats.pipeline["NO_CONTINUAR"] || 0;
 
   return (
-    <div className="space-y-6 p-4 pt-16 lg:p-8 lg:pt-8">
+    <div className="space-y-6 p-4 lg:p-8">
       {/* Header */}
       <div>
         <h1 className="text-2xl font-bold text-gray-900">Dashboard</h1>
@@ -410,7 +410,7 @@ export default function DashboardPage() {
 
 function DashboardSkeleton() {
   return (
-    <div className="space-y-6 p-4 pt-16 lg:p-8 lg:pt-8">
+    <div className="space-y-6 p-4 lg:p-8">
       <div>
         <div className="h-8 w-40 animate-pulse rounded bg-gray-200" />
         <div className="mt-1 h-4 w-64 animate-pulse rounded bg-gray-100" />

@@ -159,14 +159,22 @@ export function AdminSidebar() {
 
   return (
     <>
-      {/* Mobile hamburger button */}
-      <button
-        onClick={() => setMobileOpen(true)}
-        className="fixed left-4 top-4 z-40 rounded-lg bg-primary-950 p-2 text-white shadow-elevated lg:hidden"
-        aria-label="Abrir menú"
-      >
-        <MenuIcon className="h-6 w-6" />
-      </button>
+      {/* Mobile top bar */}
+      <div className="fixed inset-x-0 top-0 z-40 flex h-14 items-center justify-between bg-primary-950 px-4 lg:hidden">
+        <div className="flex items-center gap-2">
+          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary-800">
+            <span className="text-sm">🍽️</span>
+          </div>
+          <span className="text-sm font-bold text-white">Glorieta y Salomé</span>
+        </div>
+        <button
+          onClick={() => setMobileOpen(true)}
+          className="rounded-lg p-1.5 text-primary-300 hover:text-white"
+          aria-label="Abrir menú"
+        >
+          <MenuIcon className="h-6 w-6" />
+        </button>
+      </div>
 
       {/* Mobile overlay */}
       {mobileOpen && (

@@ -133,7 +133,7 @@ function PersonalContent() {
   }
 
   return (
-    <div className="p-4 pt-16 lg:p-8 lg:pt-8">
+    <div className="p-4 lg:p-8">
       {/* Page header */}
       <div className="mb-6">
         <h1 className="text-2xl font-bold text-gray-900">Gestion de Personal</h1>
@@ -353,7 +353,7 @@ function PersonalContent() {
 export default function PersonalPage() {
   return (
     <Suspense fallback={
-      <div className="p-4 pt-16 lg:p-8 lg:pt-8">
+      <div className="p-4 lg:p-8">
         <div className="mb-6">
           <div className="h-6 w-48 animate-pulse rounded bg-gray-200" />
           <div className="mt-2 h-4 w-64 animate-pulse rounded bg-gray-200" />

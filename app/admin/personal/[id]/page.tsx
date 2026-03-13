@@ -352,7 +352,7 @@ export default function EmployeeDetailPage({
 
   if (loading) {
     return (
-      <div className="p-4 pt-16 lg:p-8 lg:pt-8">
+      <div className="p-4 lg:p-8">
         <div className="mb-6">
           <div className="h-4 w-24 animate-pulse rounded bg-gray-200" />
           <div className="mt-2 h-6 w-48 animate-pulse rounded bg-gray-200" />
@@ -389,7 +389,7 @@ export default function EmployeeDetailPage({
   const tokenExpired = new Date(employee.tokenExpiresAt) < new Date();
 
   return (
-    <div className="p-4 pt-16 lg:p-8 lg:pt-8">
+    <div className="p-4 lg:p-8">
       {/* Breadcrumb */}
       <div className="mb-6">
         <Link href="/admin/personal" className="text-sm text-primary-600 hover:text-primary-700">

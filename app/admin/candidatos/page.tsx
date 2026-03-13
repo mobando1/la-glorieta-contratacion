@@ -33,7 +33,7 @@ interface RestaurantOption {
 
 export default function CandidatosPage() {
   return (
-    <Suspense fallback={<div className="p-4 pt-16 lg:p-8 lg:pt-8"><div className="h-96 animate-pulse rounded-card bg-gray-200" /></div>}>
+    <Suspense fallback={<div className="p-4 lg:p-8"><div className="h-96 animate-pulse rounded-card bg-gray-200" /></div>}>
       <CandidatosContent />
     </Suspense>
   );
@@ -159,7 +159,7 @@ function CandidatosContent() {
   ];
 
   return (
-    <div className="p-4 pt-16 lg:p-8 lg:pt-8">
+    <div className="p-4 lg:p-8">
       {/* Page header */}
       <div className="mb-6">
         <h1 className="text-2xl font-bold text-gray-900">Candidatos</h1>
