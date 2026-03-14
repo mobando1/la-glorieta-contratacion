@@ -23,6 +23,10 @@ export default function GlobalError({
         >
           Reintentar
         </button>
+        <p className="mt-4 text-xs text-gray-400">
+          Si el problema persiste, escr&iacute;benos a{" "}
+          <a href="mailto:laglorietarest@gmail.com" className="text-green-600 underline">laglorietarest@gmail.com</a>
+        </p>
       </div>
     </div>
   );

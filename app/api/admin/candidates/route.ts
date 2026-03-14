@@ -1,9 +1,65 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/server/db/prisma";
 import { getAuthorizedSession } from "@/server/auth/authorize";
-import { POSITION_LABELS, STATUS_LABELS } from "@/domain/types";
+import { POSITIONS, POSITION_LABELS, STATUS_LABELS } from "@/domain/types";
 import { safeJsonParse } from "@/lib/utils";
 import { logger } from "@/lib/logger";
+
+export async function POST(request: NextRequest) {
+  try {
+    const session = await getAuthorizedSession();
+    if (!session) {
+      return NextResponse.json({ error: "No autorizado" }, { status: 401 });
+    }
+
+    const body = await request.json();
+    const { fullName, phone, email, positionApplied, restaurantId, notesAdmin } = body;
+
+    if (!fullName?.trim() || !phone?.trim() || !positionApplied) {
+      return NextResponse.json(
+        { error: "Nombre, teléfono y cargo son obligatorios" },
+        { status: 400 }
+      );
+    }
+
+    if (!POSITIONS.includes(positionApplied)) {
+      return NextResponse.json(
+        { error: "Cargo inválido" },
+        { status: 400 }
+      );
+    }
+
+    const candidate = await prisma.candidate.create({
+      data: {
+        fullName: fullName.trim(),
+        phone: phone.trim(),
+        email: email?.trim() || null,
+        positionApplied,
+        restaurantId: restaurantId || null,
+        notesAdmin: notesAdmin?.trim() || null,
+        status: "PENDIENTE_EVALUACION",
+      },
+    });
+
+    await prisma.auditLog.create({
+      data: {
+        action: "candidate_created_manual",
+        entityType: "Candidate",
+        entityId: candidate.id,
+        performedBy: session.userId,
+        details: JSON.stringify({ fullName: candidate.fullName, phone: candidate.phone }),
+      },
+    });
+
+    return NextResponse.json({ candidate }, { status: 201 });
+  } catch (error) {
+    logger.error("Error creating candidate manually", { error: String(error) });
+    return NextResponse.json(
+      { error: "Error interno del servidor" },
+      { status: 500 }
+    );
+  }
+}
 
 export async function GET(request: NextRequest) {
   try {

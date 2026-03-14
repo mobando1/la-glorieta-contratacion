@@ -1,6 +1,6 @@
 import { prisma } from "@/server/db/prisma";
 
-const DEFAULT_WINDOW_MS = 60 * 60 * 1000; // 1 hour
+const DEFAULT_WINDOW_MS = 15 * 60 * 1000; // 15 minutes
 
 /**
  * Check rate limit for a given key (typically IP-based).

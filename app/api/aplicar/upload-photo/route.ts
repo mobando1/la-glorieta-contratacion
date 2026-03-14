@@ -5,12 +5,10 @@ import { logger } from "@/lib/logger";
 import { checkRateLimit } from "@/lib/rate-limit";
 
 const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
-const ALLOWED_TYPES = ["image/jpeg", "image/png", "image/heic", "image/heif"];
-
 export async function POST(request: NextRequest) {
   try {
     const ip = request.headers.get("x-forwarded-for") || "unknown";
-    if (!(await checkRateLimit(ip, 10, { prefix: "photo-" }))) {
+    if (!(await checkRateLimit(ip, 20, { prefix: "photo-" }))) {
       return NextResponse.json(
         { error: "Demasiadas solicitudes. Intenta más tarde." },
         { status: 429 }
@@ -27,9 +25,9 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    if (!ALLOWED_TYPES.includes(file.type)) {
+    if (!file.type.startsWith("image/")) {
       return NextResponse.json(
-        { error: "Solo se aceptan archivos JPG, PNG o HEIC." },
+        { error: "Solo se aceptan archivos de imagen." },
         { status: 400 }
       );
     }
@@ -45,9 +43,11 @@ export async function POST(request: NextRequest) {
     const ext = file.type === "image/png" ? "png" : "jpg";
     const fileName = `candidate-photos/${photoToken}/photo.${ext}`;
 
+    // Store as original content type, or fallback to JPEG for non-standard formats
+    const contentType = file.type === "image/jpeg" || file.type === "image/png" ? file.type : "image/jpeg";
     const blob = await put(fileName, file, {
       access: "public",
-      contentType: file.type === "image/heic" || file.type === "image/heif" ? "image/jpeg" : file.type,
+      contentType,
     });
 
     logger.info("Candidate photo uploaded to blob", { photoToken, fileSize: file.size, url: blob.url });

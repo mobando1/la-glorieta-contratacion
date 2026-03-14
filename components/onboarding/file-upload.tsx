@@ -60,7 +60,7 @@ export function FileUpload({
         setError(data.error || "Error al subir el archivo");
       }
     } catch {
-      setError("Error de conexión");
+      setError("Error de conexión. Si necesitas ayuda, escríbenos a laglorietarest@gmail.com");
     } finally {
       setUploading(false);
     }

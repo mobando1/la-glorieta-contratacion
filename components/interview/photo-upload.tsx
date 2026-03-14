@@ -50,8 +50,8 @@ export function PhotoUpload({ onUploaded, currentToken }: PhotoUploadProps) {
   async function handleFile(file: File) {
     setError(null);
 
-    if (!["image/jpeg", "image/png", "image/heic", "image/heif"].includes(file.type)) {
-      setError("Solo se aceptan archivos JPG, PNG o HEIC.");
+    if (!file.type.startsWith("image/")) {
+      setError("Solo se aceptan archivos de imagen (JPG, PNG, HEIC, etc.).");
       return;
     }
     if (file.size > 10 * 1024 * 1024) {
@@ -61,15 +61,25 @@ export function PhotoUpload({ onUploaded, currentToken }: PhotoUploadProps) {
 
     setUploading(true);
     try {
-      const compressed = await compressImage(file);
+      // Try to compress; if it fails (e.g., HEIC), upload the original
+      let fileToUpload: File;
+      try {
+        fileToUpload = await compressImage(file);
+      } catch {
+        fileToUpload = file;
+      }
 
-      // Show preview of compressed image
-      const reader = new FileReader();
-      reader.onload = (e) => setPreview(e.target?.result as string);
-      reader.readAsDataURL(compressed);
+      // Show preview (only works for browser-supported formats)
+      try {
+        const reader = new FileReader();
+        reader.onload = (e) => setPreview(e.target?.result as string);
+        reader.readAsDataURL(fileToUpload);
+      } catch {
+        // Preview not available for this format — continue without it
+      }
 
       const formData = new FormData();
-      formData.append("photo", compressed);
+      formData.append("photo", fileToUpload);
 
       const res = await fetch("/api/aplicar/upload-photo", {
         method: "POST",
@@ -82,12 +92,14 @@ export function PhotoUpload({ onUploaded, currentToken }: PhotoUploadProps) {
         onUploaded(data.photoToken);
       } else {
         const data = await res.json();
-        setError(data.error || "Error al subir la foto.");
+        setError(data.error || "Error al subir la foto. Puedes continuar sin foto si el problema persiste.");
         setPreview(null);
+        if (inputRef.current) inputRef.current.value = "";
       }
     } catch {
-      setError("Error de conexión. Intenta de nuevo. Si el problema persiste, escríbenos a laglorietarest@gmail.com");
+      setError("Error de conexión. Puedes continuar sin foto. Si el problema persiste, escríbenos a laglorietarest@gmail.com");
       setPreview(null);
+      if (inputRef.current) inputRef.current.value = "";
     } finally {
       setUploading(false);
     }
@@ -128,7 +140,7 @@ export function PhotoUpload({ onUploaded, currentToken }: PhotoUploadProps) {
           <input
             ref={inputRef}
             type="file"
-            accept="image/jpeg,image/png,image/heic,image/heif"
+            accept="image/*"
             onChange={handleInputChange}
             className="hidden"
           />
@@ -181,7 +193,7 @@ export function PhotoUpload({ onUploaded, currentToken }: PhotoUploadProps) {
               <p className="text-sm text-gray-600">
                 Toca para {preview ? "cambiar" : "subir"} tu foto
               </p>
-              <p className="mt-0.5 text-xs text-gray-400">JPG, PNG o HEIC (max. 10MB)</p>
+              <p className="mt-0.5 text-xs text-gray-400">JPG, PNG u otra imagen (max. 10MB)</p>
             </div>
           )}
         </div>

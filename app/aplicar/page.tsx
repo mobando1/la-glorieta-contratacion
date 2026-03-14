@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef, useCallback } from "react";
+import { useState, useRef, useCallback, useEffect } from "react";
 import { getInterviewSteps } from "@/domain/interview-questions";
 import { useToast } from "@/components/ui/toast";
 import { StepIndicator } from "@/components/interview/step-indicator";
@@ -9,6 +9,35 @@ import type { Question } from "@/domain/interview-questions";
 import type { Position } from "@/domain/types";
 
 type FormData = Record<string, Record<string, unknown>>;
+
+const STORAGE_KEY = "entrevista-draft";
+
+function loadDraft(): { formData: FormData; currentStep: number } | null {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw);
+    if (parsed && typeof parsed.formData === "object" && typeof parsed.currentStep === "number") {
+      return { formData: parsed.formData, currentStep: parsed.currentStep };
+    }
+  } catch {
+    // Corrupt data — ignore
+  }
+  return null;
+}
+
+function saveDraft(formData: FormData, currentStep: number) {
+  try {
+    // Exclude photoToken since blob URLs may expire
+    const dataToSave = {
+      ...formData,
+      basic: { ...formData.basic, photoToken: null },
+    };
+    localStorage.setItem(STORAGE_KEY, JSON.stringify({ formData: dataToSave, currentStep }));
+  } catch {
+    // Storage full or unavailable — silently fail
+  }
+}
 
 const INITIAL_DATA: FormData = {
   intro: {},
@@ -66,12 +95,33 @@ const STEP_SHORT_TITLES = ["Inicio", "Datos", "Disp.", "Motiv.", "Resp.", "Escen
 
 export default function AplicarPage() {
   const { showToast } = useToast();
-  const [currentStep, setCurrentStep] = useState(0);
-  const [formData, setFormData] = useState<FormData>(INITIAL_DATA);
+  const [currentStep, setCurrentStep] = useState(() => {
+    if (typeof window === "undefined") return 0;
+    const draft = loadDraft();
+    return draft ? draft.currentStep : 0;
+  });
+  const [formData, setFormData] = useState<FormData>(() => {
+    if (typeof window === "undefined") return INITIAL_DATA;
+    const draft = loadDraft();
+    return draft ? { ...INITIAL_DATA, ...draft.formData } : INITIAL_DATA;
+  });
+  const [restoredDraft, setRestoredDraft] = useState(() => {
+    if (typeof window === "undefined") return false;
+    return loadDraft() !== null;
+  });
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [submitting, setSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
   const startTimeRef = useRef(Date.now());
+
+  // Auto-save form progress to localStorage
+  useEffect(() => {
+    if (submitted) return;
+    const timer = setTimeout(() => {
+      saveDraft(formData, currentStep);
+    }, 500);
+    return () => clearTimeout(timer);
+  }, [formData, currentStep, submitted]);
 
   const position = formData.basic.positionApplied as Position | "";
   const steps = getInterviewSteps(position ? (position as Position) : undefined);
@@ -212,6 +262,7 @@ export default function AplicarPage() {
 
       if (res.ok) {
         setSubmitted(true);
+        localStorage.removeItem(STORAGE_KEY);
       } else {
         const data = await res.json();
         if (data.errors) {
@@ -221,7 +272,7 @@ export default function AplicarPage() {
           }
           setErrors(fieldErrors);
         } else {
-          showToast(data.error || "Error al enviar la entrevista", "error");
+          showToast((data.error || "Error al enviar la entrevista") + ". Si necesitas ayuda, escríbenos a laglorietarest@gmail.com", "error");
         }
       }
     } catch {
@@ -271,6 +322,40 @@ export default function AplicarPage() {
           <h1 className="text-xl font-bold text-gray-900">La Glorieta y Salomé</h1>
           <p className="text-sm text-gray-500">Proceso de Selección</p>
         </div>
+
+        {/* Restored draft banner */}
+        {restoredDraft && (
+          <div className="mb-4 flex items-center justify-between rounded-lg border border-primary-200 bg-primary-50 px-4 py-3">
+            <p className="text-sm text-primary-800">
+              Encontramos tu progreso anterior. Puedes continuar donde lo dejaste.
+            </p>
+            <div className="ml-3 flex shrink-0 gap-2">
+              <button
+                type="button"
+                onClick={() => {
+                  localStorage.removeItem(STORAGE_KEY);
+                  setFormData(INITIAL_DATA);
+                  setCurrentStep(0);
+                  setRestoredDraft(false);
+                  setErrors({});
+                }}
+                className="text-xs font-medium text-primary-600 underline hover:text-primary-800"
+              >
+                Empezar de nuevo
+              </button>
+              <button
+                type="button"
+                onClick={() => setRestoredDraft(false)}
+                className="text-primary-400 hover:text-primary-600"
+                aria-label="Cerrar"
+              >
+                <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M6 18 18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+          </div>
+        )}
 
         {/* Step indicator */}
         <div className="mb-6" role="progressbar" aria-valuenow={currentStep + 1} aria-valuemin={1} aria-valuemax={steps.length} aria-label={`Paso ${currentStep + 1} de ${steps.length}: ${step.title}`}>

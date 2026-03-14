@@ -180,6 +180,10 @@ export default function HomePage() {
           <p className="mt-3 text-xs text-primary-300/70 sm:mt-4 sm:text-sm">
             Proceso rápido &mdash; aproximadamente 15 minutos
           </p>
+          <p className="mt-2 text-xs text-primary-300/50">
+            ¿Tienes problemas? Escr&iacute;benos a{" "}
+            <a href="mailto:laglorietarest@gmail.com" className="text-primary-200/70 underline">laglorietarest@gmail.com</a>
+          </p>
         </div>
       </section>
     </main>

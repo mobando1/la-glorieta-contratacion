@@ -61,6 +61,17 @@ function CandidatosContent() {
   const [filterDateTo, setFilterDateTo] = useState("");
   const [restaurants, setRestaurants] = useState<RestaurantOption[]>([]);
 
+  // New candidate modal
+  const [showForm, setShowForm] = useState(false);
+  const [formFullName, setFormFullName] = useState("");
+  const [formPhone, setFormPhone] = useState("");
+  const [formEmail, setFormEmail] = useState("");
+  const [formPosition, setFormPosition] = useState("");
+  const [formRestaurant, setFormRestaurant] = useState("");
+  const [formNotes, setFormNotes] = useState("");
+  const [formSaving, setFormSaving] = useState(false);
+  const [formError, setFormError] = useState("");
+
   // Debounce search
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -116,6 +127,57 @@ function CandidatosContent() {
     return () => controller.abort();
   }, [fetchCandidates]);
 
+  function openNewCandidateForm() {
+    setFormFullName("");
+    setFormPhone("");
+    setFormEmail("");
+    setFormPosition("");
+    setFormRestaurant("");
+    setFormNotes("");
+    setFormError("");
+    setShowForm(true);
+  }
+
+  function closeForm() {
+    setShowForm(false);
+    setFormError("");
+  }
+
+  async function handleCreateCandidate(e: React.FormEvent) {
+    e.preventDefault();
+    setFormError("");
+    if (!formFullName.trim() || !formPhone.trim() || !formPosition) {
+      setFormError("Nombre, teléfono y cargo son obligatorios");
+      return;
+    }
+    setFormSaving(true);
+    try {
+      const res = await fetch("/api/admin/candidates", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          fullName: formFullName,
+          phone: formPhone,
+          email: formEmail || undefined,
+          positionApplied: formPosition,
+          restaurantId: formRestaurant || undefined,
+          notesAdmin: formNotes || undefined,
+        }),
+      });
+      if (!res.ok) {
+        const data = await res.json();
+        setFormError(data.error || "Error al crear candidato");
+        return;
+      }
+      closeForm();
+      fetchCandidates();
+    } catch {
+      setFormError("Error de conexión");
+    } finally {
+      setFormSaving(false);
+    }
+  }
+
   async function handleExportCSV() {
     const params = new URLSearchParams();
     if (filterPosition) params.set("position", filterPosition);
@@ -161,9 +223,17 @@ function CandidatosContent() {
   return (
     <div className="p-4 lg:p-8">
       {/* Page header */}
-      <div className="mb-6">
-        <h1 className="text-2xl font-bold text-gray-900">Candidatos</h1>
-        <p className="text-sm text-gray-500">Gestiona las aplicaciones recibidas</p>
+      <div className="mb-6 flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl font-bold text-gray-900">Candidatos</h1>
+          <p className="text-sm text-gray-500">Gestiona las aplicaciones recibidas</p>
+        </div>
+        <button
+          onClick={openNewCandidateForm}
+          className="rounded-lg bg-primary-600 px-4 py-2.5 text-sm font-medium text-white transition-colors hover:bg-primary-700"
+        >
+          + Agregar Candidato
+        </button>
       </div>
 
       {/* Stats */}
@@ -474,6 +544,111 @@ function CandidatosContent() {
           >
             Siguiente
           </button>
+        </div>
+      )}
+
+      {/* New candidate modal */}
+      {showForm && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 px-4">
+          <div className="w-full max-w-md rounded-card bg-white p-6 shadow-elevated">
+            <h2 className="mb-4 text-lg font-bold text-gray-900">Agregar Candidato</h2>
+            <form onSubmit={handleCreateCandidate}>
+              <div className="space-y-4">
+                <div>
+                  <label className="mb-1 block text-sm font-medium text-gray-700">
+                    Nombre completo <span className="text-red-500">*</span>
+                  </label>
+                  <input
+                    type="text"
+                    value={formFullName}
+                    onChange={(e) => setFormFullName(e.target.value)}
+                    className="w-full rounded-lg border border-gray-200 px-3 py-2.5 text-sm ring-1 ring-gray-100 focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500"
+                  />
+                </div>
+                <div>
+                  <label className="mb-1 block text-sm font-medium text-gray-700">
+                    Teléfono <span className="text-red-500">*</span>
+                  </label>
+                  <input
+                    type="tel"
+                    value={formPhone}
+                    onChange={(e) => setFormPhone(e.target.value)}
+                    className="w-full rounded-lg border border-gray-200 px-3 py-2.5 text-sm ring-1 ring-gray-100 focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500"
+                  />
+                </div>
+                <div>
+                  <label className="mb-1 block text-sm font-medium text-gray-700">
+                    Cargo <span className="text-red-500">*</span>
+                  </label>
+                  <select
+                    value={formPosition}
+                    onChange={(e) => setFormPosition(e.target.value)}
+                    className="w-full rounded-lg border border-gray-200 px-3 py-2.5 text-sm ring-1 ring-gray-100 focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500"
+                  >
+                    <option value="">Seleccionar...</option>
+                    {POSITIONS.map((p) => (
+                      <option key={p} value={p}>{POSITION_LABELS[p as Position]}</option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <label className="mb-1 block text-sm font-medium text-gray-700">Email</label>
+                  <input
+                    type="email"
+                    value={formEmail}
+                    onChange={(e) => setFormEmail(e.target.value)}
+                    className="w-full rounded-lg border border-gray-200 px-3 py-2.5 text-sm ring-1 ring-gray-100 focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500"
+                  />
+                </div>
+                <div>
+                  <label className="mb-1 block text-sm font-medium text-gray-700">Restaurante</label>
+                  <select
+                    value={formRestaurant}
+                    onChange={(e) => setFormRestaurant(e.target.value)}
+                    className="w-full rounded-lg border border-gray-200 px-3 py-2.5 text-sm ring-1 ring-gray-100 focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500"
+                  >
+                    <option value="">Sin asignar</option>
+                    {restaurants.map((r) => (
+                      <option key={r.id} value={r.id}>{r.name}</option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <label className="mb-1 block text-sm font-medium text-gray-700">Notas</label>
+                  <textarea
+                    value={formNotes}
+                    onChange={(e) => setFormNotes(e.target.value)}
+                    rows={3}
+                    placeholder="Ej: Llegó en persona, busca trabajo inmediato..."
+                    className="w-full resize-none rounded-lg border border-gray-200 px-3 py-2.5 text-sm ring-1 ring-gray-100 focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500"
+                  />
+                </div>
+              </div>
+
+              {formError && (
+                <div className="mt-4 rounded-lg bg-red-50 p-3 text-sm text-red-700">
+                  {formError}
+                </div>
+              )}
+
+              <div className="mt-6 flex justify-end gap-3">
+                <button
+                  type="button"
+                  onClick={closeForm}
+                  className="rounded-lg border border-gray-200 px-4 py-2.5 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-50"
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="submit"
+                  disabled={formSaving}
+                  className="rounded-lg bg-primary-600 px-4 py-2.5 text-sm font-medium text-white transition-colors hover:bg-primary-700 disabled:opacity-50"
+                >
+                  {formSaving ? "Guardando..." : "Crear Candidato"}
+                </button>
+              </div>
+            </form>
+          </div>
         </div>
       )}
     </div>

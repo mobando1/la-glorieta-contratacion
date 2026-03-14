@@ -84,7 +84,7 @@ export default function OnboardingPage({
         setCompleted(true);
       }
     } catch {
-      setError("Error de conexión");
+      setError("Error de conexión. Si necesitas ayuda, escríbenos a laglorietarest@gmail.com");
     } finally {
       setLoading(false);
     }
@@ -118,7 +118,7 @@ export default function OnboardingPage({
         setError(data.error || "Error al guardar");
       }
     } catch {
-      setError("Error de conexión");
+      setError("Error de conexión. Si necesitas ayuda, escríbenos a laglorietarest@gmail.com");
     } finally {
       setSaving(false);
     }
@@ -138,7 +138,7 @@ export default function OnboardingPage({
         setError(data.error || "Error al completar");
       }
     } catch {
-      setError("Error de conexión");
+      setError("Error de conexión. Si necesitas ayuda, escríbenos a laglorietarest@gmail.com");
     } finally {
       setCompleting(false);
     }
@@ -163,6 +163,10 @@ export default function OnboardingPage({
           </div>
           <h2 className="mb-2 text-lg font-bold text-gray-900">Enlace inválido</h2>
           <p className="text-sm text-gray-600">{error}</p>
+          <p className="mt-3 text-xs text-gray-400">
+            Si necesitas ayuda, escr&iacute;benos a{" "}
+            <a href="mailto:laglorietarest@gmail.com" className="text-primary-600 underline">laglorietarest@gmail.com</a>
+          </p>
         </div>
       </div>
     );

@@ -12,7 +12,7 @@ export async function POST(request: NextRequest) {
   try {
     // Rate limiting
     const ip = request.headers.get("x-forwarded-for") || "unknown";
-    if (!(await checkRateLimit(ip, 5))) {
+    if (!(await checkRateLimit(ip, 10))) {
       return NextResponse.json(
         { error: "Has enviado demasiadas solicitudes. Intenta más tarde." },
         { status: 429 }
