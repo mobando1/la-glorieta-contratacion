@@ -90,7 +90,6 @@ export interface InterviewAnswers {
     startDate: string;
     hasOtherJob: boolean;
     otherJobDetails: string;
-    transportMethod: string;
   };
   motivation: {
     whyThisJob: string;

@@ -54,9 +54,10 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({ photoToken, fileName: `photo.${ext}`, blobUrl: blob.url });
   } catch (error) {
-    logger.error("Error uploading candidate photo", { error });
+    const message = error instanceof Error ? error.message : String(error);
+    logger.error("Error uploading candidate photo", { error: message, stack: error instanceof Error ? error.stack : undefined });
     return NextResponse.json(
-      { error: "Error al subir la foto. Intenta de nuevo." },
+      { error: `Error al subir la foto: ${message}. Si el problema persiste, escríbenos a laglorietarest@gmail.com` },
       { status: 500 }
     );
   }

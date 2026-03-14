@@ -74,7 +74,6 @@ Turnos disponibles: ${answers.availability.availableShifts.join(", ")}
 Fecha inicio: ${answers.availability.startDate}
 Otro trabajo: ${answers.availability.hasOtherJob ? "Sí" : "No"}
 ${answers.availability.hasOtherJob ? `Detalle otro trabajo: ${answers.availability.otherJobDetails}` : ""}
-Transporte: ${answers.availability.transportMethod}
 
 ¿Por qué quiere trabajar aquí?: ${answers.motivation.whyThisJob}
 ¿Qué sabe del restaurante?: ${answers.motivation.whatDoYouKnowAboutUs}

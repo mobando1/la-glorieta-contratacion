@@ -170,14 +170,6 @@ const AVAILABILITY_QUESTIONS: Question[] = [
     conditional: { field: "hasOtherJob", value: true },
     maxLength: 300,
   },
-  {
-    id: "transportMethod",
-    label: "¿Cómo llegarías al restaurante?",
-    type: "text",
-    required: true,
-    maxLength: 200,
-    placeholder: "Ej: Caminando, en bus, en moto...",
-  },
 ];
 
 const MOTIVATION_QUESTIONS: Question[] = [

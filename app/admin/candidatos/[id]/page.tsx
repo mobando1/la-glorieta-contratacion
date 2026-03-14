@@ -1082,7 +1082,6 @@ function InterviewAnswersView({ answers }: { answers: InterviewAnswers }) {
         { label: "Turnos", value: answers.availability.availableShifts.join(", ") },
         { label: "Inicio", value: answers.availability.startDate },
         { label: "Otro trabajo", value: answers.availability.hasOtherJob ? "Sí" : "No" },
-        { label: "Transporte", value: answers.availability.transportMethod },
       ],
     },
     {

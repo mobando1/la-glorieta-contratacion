@@ -186,6 +186,25 @@ export default function HomePage() {
           </p>
         </div>
       </section>
+
+      {/* ===== FOOTER BRANDING ===== */}
+      <footer className="bg-gray-50 px-4 py-6">
+        <div className="mx-auto flex max-w-md flex-col items-center gap-2 text-center">
+          <div className="flex items-center gap-2">
+            <Image
+              src="/logos/im3.png"
+              alt="IM3 Systems"
+              width={40}
+              height={20}
+              className="opacity-50"
+            />
+            <p className="text-[11px] tracking-wide text-gray-400">
+              Desarrollado por{" "}
+              <span className="font-semibold text-gray-500">IM3 Systems</span>
+            </p>
+          </div>
+        </div>
+      </footer>
     </main>
   );
 }

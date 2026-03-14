@@ -38,7 +38,6 @@ export const interviewSubmissionSchema = z.object({
       startDate: z.string().min(1).max(100),
       hasOtherJob: z.boolean(),
       otherJobDetails: z.string().max(300).default(""),
-      transportMethod: z.string().min(1).max(200),
     }),
     motivation: z.object({
       whyThisJob: z.string().min(1).max(500),

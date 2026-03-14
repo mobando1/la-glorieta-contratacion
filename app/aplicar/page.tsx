@@ -63,7 +63,6 @@ const INITIAL_DATA: FormData = {
     startDate: "",
     hasOtherJob: null,
     otherJobDetails: "",
-    transportMethod: "",
   },
   motivation: {
     whyThisJob: "",

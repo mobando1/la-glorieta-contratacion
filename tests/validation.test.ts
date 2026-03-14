@@ -143,7 +143,6 @@ describe("validateFullInterview", () => {
         startDate: "",
         hasOtherJob: false,
         otherJobDetails: "",
-        transportMethod: "",
       },
       motivation: {
         whyThisJob: "",

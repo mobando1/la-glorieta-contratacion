@@ -13,7 +13,6 @@ const CHAR_LIMITS: Record<string, number> = {
   experienceDetails: 500,
   startDate: 100,
   otherJobDetails: 300,
-  transportMethod: 200,
   whyThisJob: 500,
   whatDoYouKnowAboutUs: 300,
   whereDoYouSeeYourself: 300,
@@ -129,8 +128,6 @@ export function validateAvailability(
   if (data.hasOtherJob && !data.otherJobDetails?.trim()) {
     errors.push({ field: "otherJobDetails", message: "Describe tu otro trabajo" });
   }
-
-  validateRequiredString(data.transportMethod, "transportMethod", errors);
 
   return errors;
 }
