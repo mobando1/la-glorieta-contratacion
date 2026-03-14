@@ -108,7 +108,7 @@ export function PhotoUpload({ onUploaded, currentToken }: PhotoUploadProps) {
   return (
     <div className="mt-6 rounded-lg border border-gray-200 bg-gray-50 p-4">
       <label className="mb-3 block text-sm font-medium text-gray-700">
-        Foto de identificacion <span className="text-red-400">*</span>
+        Foto de identificacion <span className="text-amber-500">(Recomendada)</span>
       </label>
 
       <div className="flex flex-col items-center gap-3 sm:flex-row sm:items-start">
@@ -192,9 +192,9 @@ export function PhotoUpload({ onUploaded, currentToken }: PhotoUploadProps) {
       {/* Legal disclaimer */}
       <div className="mt-3 rounded border border-amber-200 bg-amber-50 p-2.5">
         <p className="text-xs leading-relaxed text-amber-800">
-          <span className="font-semibold">Aviso:</span> Esta foto es necesaria y sera utilizada
-          unicamente con fines de identificacion interna durante el proceso de seleccion. Al subir
-          tu foto, autorizas su uso exclusivo para este proposito. No sera compartida con terceros.
+          <span className="font-semibold">Aviso:</span> Puedes enviar tu aplicacion sin foto, pero incluirla mejora tus posibilidades.
+          Sera utilizada unicamente con fines de identificacion interna durante el proceso de seleccion.
+          Al subir tu foto, autorizas su uso exclusivo para este proposito. No sera compartida con terceros.
         </p>
       </div>
     </div>

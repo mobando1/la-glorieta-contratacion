@@ -148,11 +148,6 @@ export default function AplicarPage() {
       }
     }
 
-    // Photo validation (required on basic step)
-    if (step.id === "basic" && !sectionData.photoToken) {
-      newErrors.photoToken = "La foto es obligatoria";
-    }
-
     // Phone validation
     if (step.id === "basic" && !newErrors.phone) {
       const phone = (sectionData.phone as string) || "";
@@ -324,9 +319,6 @@ export default function AplicarPage() {
                     currentToken={formData.basic.photoToken as string | null}
                     onUploaded={(token) => updateField("basic", "photoToken", token)}
                   />
-                  {errors.photoToken && (
-                    <p className="mt-1 text-sm text-red-600">{errors.photoToken}</p>
-                  )}
                 </>
               )}
             </div>
