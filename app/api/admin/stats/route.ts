@@ -16,7 +16,7 @@ export async function GET() {
     const [
       statusCounts,
       scoreAgg,
-      restaurantCounts,
+      _restaurantCounts,
       positionCounts,
       recentActivity,
       employeeCounts,
@@ -24,6 +24,7 @@ export async function GET() {
       reviewCandidates,
       redFlagEvals,
       poolStatusCounts,
+      recentCandidates,
       poolScoreAgg,
     ] = await Promise.all([
       // Pipeline counts by status
@@ -100,6 +101,13 @@ export async function GET() {
         _count: true,
         where: session.isSuperAdmin ? {} : rf,
       }),
+      // Recent candidates (last 5)
+      prisma.candidate.findMany({
+        where: rf,
+        orderBy: { createdAt: "desc" },
+        take: 5,
+        select: { id: true, fullName: true, positionApplied: true, status: true, createdAt: true },
+      }),
       // Pool avg scores
       prisma.employee.aggregate({
         _avg: { reliabilityScore: true, priorityScore: true },
@@ -137,26 +145,6 @@ export async function GET() {
 
     // Unique red flag candidate count
     const redFlagCount = new Set(redFlagEvals.map((e) => e.candidateId)).size;
-
-    // Restaurant names lookup
-    const restaurantIds = restaurantCounts
-      .map((r) => r.restaurantId)
-      .filter((id): id is string => id !== null);
-    const restaurants = restaurantIds.length > 0
-      ? await prisma.restaurant.findMany({
-          where: { id: { in: restaurantIds } },
-          select: { id: true, name: true },
-        })
-      : [];
-    const restaurantMap = new Map(restaurants.map((r) => [r.id, r.name]));
-
-    const byRestaurant = restaurantCounts
-      .filter((r) => r.restaurantId !== null)
-      .map((r) => ({
-        id: r.restaurantId!,
-        name: restaurantMap.get(r.restaurantId!) || "Sin restaurante",
-        count: r._count,
-      }));
 
     const byPosition = positionCounts.map((p) => ({
       position: p.positionApplied,
@@ -210,8 +198,14 @@ export async function GET() {
         pendingReviews: reviewCandidates,
         redFlagCount,
       },
-      byRestaurant,
       byPosition,
+      recentCandidates: recentCandidates.map((c) => ({
+        id: c.id,
+        fullName: c.fullName,
+        positionApplied: c.positionApplied,
+        status: c.status,
+        createdAt: c.createdAt.toISOString(),
+      })),
       recentActivity: recentActivity.map((a) => ({
         id: a.id,
         action: a.action,

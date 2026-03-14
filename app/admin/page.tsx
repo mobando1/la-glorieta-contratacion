@@ -17,8 +17,14 @@ interface Stats {
     pendingReviews: number;
     redFlagCount: number;
   };
-  byRestaurant: { id: string; name: string; count: number }[];
   byPosition: { position: string; count: number }[];
+  recentCandidates: {
+    id: string;
+    fullName: string;
+    positionApplied: string;
+    status: string;
+    createdAt: string;
+  }[];
   recentActivity: {
     id: string;
     action: string;
@@ -243,30 +249,41 @@ export default function DashboardPage() {
 
       {/* Breakdowns + Quick Actions */}
       <div className="grid gap-4 lg:grid-cols-3">
-        {/* By Restaurant */}
+        {/* Recent Candidates */}
         <div className="rounded-card bg-white p-5 shadow-card">
-          <h3 className="mb-3 text-sm font-semibold text-gray-900">Por Restaurante</h3>
-          {stats.byRestaurant.length === 0 ? (
-            <p className="text-sm text-gray-400">Sin datos</p>
+          <div className="mb-3 flex items-center justify-between">
+            <h3 className="text-sm font-semibold text-gray-900">Candidatos Recientes</h3>
+            <Link href="/admin/candidatos" className="text-xs text-primary-600 hover:text-primary-700">
+              Ver todos &rarr;
+            </Link>
+          </div>
+          {stats.recentCandidates.length === 0 ? (
+            <p className="text-sm text-gray-400">Sin candidatos</p>
           ) : (
-            <div className="space-y-2">
-              {stats.byRestaurant.map((r) => {
-                const maxR = Math.max(...stats.byRestaurant.map((x) => x.count), 1);
-                return (
-                  <div key={r.id}>
-                    <div className="flex justify-between text-sm">
-                      <span className="text-gray-600">{r.name}</span>
-                      <span className="font-semibold text-gray-700">{r.count}</span>
-                    </div>
-                    <div className="mt-0.5 h-1.5 w-full rounded-full bg-gray-100">
-                      <div
-                        className="h-1.5 rounded-full bg-primary-400"
-                        style={{ width: `${(r.count / maxR) * 100}%` }}
-                      />
-                    </div>
+            <div className="space-y-2.5">
+              {stats.recentCandidates.map((c) => (
+                <Link
+                  key={c.id}
+                  href={`/admin/candidatos/${c.id}`}
+                  className="flex items-center justify-between rounded-lg border border-gray-100 px-3 py-2 transition-colors hover:bg-gray-50"
+                >
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate text-sm font-medium text-gray-900">{c.fullName}</p>
+                    <p className="text-xs text-gray-400">
+                      {POSITION_LABELS[c.positionApplied as Position] || c.positionApplied} &middot; {timeAgo(c.createdAt)}
+                    </p>
                   </div>
-                );
-              })}
+                  <span className={`ml-2 shrink-0 rounded-full px-2 py-0.5 text-[10px] font-medium ${
+                    c.status === "CONTRATADO" ? "bg-teal-50 text-teal-700" :
+                    c.status === "NO_CONTINUAR" ? "bg-red-50 text-red-700" :
+                    c.status === "EVALUADO" ? "bg-purple-50 text-purple-700" :
+                    c.status === "PRESELECCIONADO" ? "bg-primary-50 text-primary-700" :
+                    "bg-gray-100 text-gray-600"
+                  }`}>
+                    {STATUS_LABELS[c.status as CandidateStatus] || c.status}
+                  </span>
+                </Link>
+              ))}
             </div>
           )}
         </div>
