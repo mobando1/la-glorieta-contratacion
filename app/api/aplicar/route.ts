@@ -91,7 +91,7 @@ export async function POST(request: NextRequest) {
           const originalBlob = blobs[0];
           // Copy to candidate-specific path
           const newPath = `candidate-photos/${result.candidateId}/photo.${originalBlob.pathname.endsWith(".png") ? "png" : "jpg"}`;
-          const newBlob = await copy(originalBlob.url, newPath, { access: "public" });
+          const newBlob = await copy(originalBlob.url, newPath, { access: "private" });
           await prisma.candidate.update({
             where: { id: result.candidateId },
             data: { photoPath: newBlob.url },

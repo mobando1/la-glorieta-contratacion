@@ -46,7 +46,7 @@ export async function POST(request: NextRequest) {
     // Store as original content type, or fallback to JPEG for non-standard formats
     const contentType = file.type === "image/jpeg" || file.type === "image/png" ? file.type : "image/jpeg";
     const blob = await put(fileName, file, {
-      access: "public",
+      access: "private",
       contentType,
     });
 

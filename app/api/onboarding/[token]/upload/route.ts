@@ -74,7 +74,7 @@ export async function POST(
 
     // Upload to Vercel Blob
     const blob = await put(blobPath, file, {
-      access: "public",
+      access: "private",
       contentType: file.type,
     });
 
