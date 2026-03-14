@@ -5,6 +5,7 @@ const DEFAULT_WINDOW_MS = 60 * 60 * 1000; // 1 hour
 /**
  * Check rate limit for a given key (typically IP-based).
  * Returns true if within limit, false if exceeded.
+ * Uses atomic database operations to prevent race conditions.
  */
 export async function checkRateLimit(
   ip: string,
@@ -16,24 +17,24 @@ export async function checkRateLimit(
   const now = new Date();
   const windowStart = new Date(now.getTime() - windowMs);
 
-  const entry = await prisma.rateLimit.findUnique({ where: { id: key } });
-
-  if (!entry || entry.windowStart < windowStart) {
-    await prisma.rateLimit.upsert({
-      where: { id: key },
-      update: { count: 1, windowStart: now },
-      create: { id: key, count: 1, windowStart: now },
-    });
-    return true;
-  }
-
-  if (entry.count >= limit) {
-    return false;
-  }
-
-  await prisma.rateLimit.update({
+  // Atomically reset expired windows and increment count
+  await prisma.rateLimit.upsert({
     where: { id: key },
-    data: { count: entry.count + 1 },
+    update: {},
+    create: { id: key, count: 0, windowStart: now },
   });
-  return true;
+
+  // Reset window if expired
+  await prisma.rateLimit.updateMany({
+    where: { id: key, windowStart: { lt: windowStart } },
+    data: { count: 0, windowStart: now },
+  });
+
+  // Atomic increment with limit check
+  const result = await prisma.rateLimit.updateMany({
+    where: { id: key, count: { lt: limit } },
+    data: { count: { increment: 1 } },
+  });
+
+  return result.count > 0;
 }

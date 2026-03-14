@@ -7,6 +7,39 @@ interface PhotoUploadProps {
   currentToken?: string | null;
 }
 
+async function compressImage(file: File, maxSize = 1200, quality = 0.8): Promise<File> {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    img.onload = () => {
+      let { width, height } = img;
+      if (width > maxSize || height > maxSize) {
+        if (width > height) {
+          height = Math.round((height * maxSize) / width);
+          width = maxSize;
+        } else {
+          width = Math.round((width * maxSize) / height);
+          height = maxSize;
+        }
+      }
+      const canvas = document.createElement("canvas");
+      canvas.width = width;
+      canvas.height = height;
+      const ctx = canvas.getContext("2d")!;
+      ctx.drawImage(img, 0, 0, width, height);
+      canvas.toBlob(
+        (blob) => {
+          if (!blob) return reject(new Error("Error al comprimir"));
+          resolve(new File([blob], file.name, { type: "image/jpeg" }));
+        },
+        "image/jpeg",
+        quality
+      );
+    };
+    img.onerror = () => reject(new Error("Error al leer la imagen"));
+    img.src = URL.createObjectURL(file);
+  });
+}
+
 export function PhotoUpload({ onUploaded, currentToken }: PhotoUploadProps) {
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -17,24 +50,26 @@ export function PhotoUpload({ onUploaded, currentToken }: PhotoUploadProps) {
   async function handleFile(file: File) {
     setError(null);
 
-    if (!["image/jpeg", "image/png"].includes(file.type)) {
-      setError("Solo se aceptan archivos JPG o PNG.");
+    if (!["image/jpeg", "image/png", "image/heic", "image/heif"].includes(file.type)) {
+      setError("Solo se aceptan archivos JPG, PNG o HEIC.");
       return;
     }
-    if (file.size > 3 * 1024 * 1024) {
-      setError("La foto no puede superar 3MB.");
+    if (file.size > 10 * 1024 * 1024) {
+      setError("La foto no puede superar 10MB.");
       return;
     }
-
-    // Show preview immediately
-    const reader = new FileReader();
-    reader.onload = (e) => setPreview(e.target?.result as string);
-    reader.readAsDataURL(file);
 
     setUploading(true);
     try {
+      const compressed = await compressImage(file);
+
+      // Show preview of compressed image
+      const reader = new FileReader();
+      reader.onload = (e) => setPreview(e.target?.result as string);
+      reader.readAsDataURL(compressed);
+
       const formData = new FormData();
-      formData.append("photo", file);
+      formData.append("photo", compressed);
 
       const res = await fetch("/api/aplicar/upload-photo", {
         method: "POST",
@@ -51,7 +86,7 @@ export function PhotoUpload({ onUploaded, currentToken }: PhotoUploadProps) {
         setPreview(null);
       }
     } catch {
-      setError("Error de conexión. Intenta de nuevo.");
+      setError("Error de conexión. Intenta de nuevo. Si el problema persiste, escríbenos a laglorietarest@gmail.com");
       setPreview(null);
     } finally {
       setUploading(false);
@@ -73,13 +108,17 @@ export function PhotoUpload({ onUploaded, currentToken }: PhotoUploadProps) {
   return (
     <div className="mt-6 rounded-lg border border-gray-200 bg-gray-50 p-4">
       <label className="mb-3 block text-sm font-medium text-gray-700">
-        Foto de identificacion <span className="text-gray-400">(Opcional)</span>
+        Foto de identificacion <span className="text-red-400">*</span>
       </label>
 
       <div className="flex flex-col items-center gap-3 sm:flex-row sm:items-start">
         {/* Photo area */}
         <div
+          role="button"
+          tabIndex={0}
+          aria-label="Subir foto de identificación"
           onClick={() => !uploading && inputRef.current?.click()}
+          onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); !uploading && inputRef.current?.click(); } }}
           className={`relative flex h-24 w-24 shrink-0 cursor-pointer items-center justify-center overflow-hidden rounded-full border-2 border-dashed transition-colors ${
             preview
               ? "border-primary-300 bg-primary-50"
@@ -89,8 +128,7 @@ export function PhotoUpload({ onUploaded, currentToken }: PhotoUploadProps) {
           <input
             ref={inputRef}
             type="file"
-            accept="image/jpeg,image/png"
-            capture="user"
+            accept="image/jpeg,image/png,image/heic,image/heif"
             onChange={handleInputChange}
             className="hidden"
           />
@@ -143,7 +181,7 @@ export function PhotoUpload({ onUploaded, currentToken }: PhotoUploadProps) {
               <p className="text-sm text-gray-600">
                 Toca para {preview ? "cambiar" : "subir"} tu foto
               </p>
-              <p className="mt-0.5 text-xs text-gray-400">JPG o PNG (max. 3MB)</p>
+              <p className="mt-0.5 text-xs text-gray-400">JPG, PNG o HEIC (max. 10MB)</p>
             </div>
           )}
         </div>
@@ -154,7 +192,7 @@ export function PhotoUpload({ onUploaded, currentToken }: PhotoUploadProps) {
       {/* Legal disclaimer */}
       <div className="mt-3 rounded border border-amber-200 bg-amber-50 p-2.5">
         <p className="text-xs leading-relaxed text-amber-800">
-          <span className="font-semibold">Aviso:</span> Esta foto es opcional y sera utilizada
+          <span className="font-semibold">Aviso:</span> Esta foto es necesaria y sera utilizada
           unicamente con fines de identificacion interna durante el proceso de seleccion. Al subir
           tu foto, autorizas su uso exclusivo para este proposito. No sera compartida con terceros.
         </p>

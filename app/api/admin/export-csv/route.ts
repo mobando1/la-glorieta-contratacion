@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/server/db/prisma";
 import { getAuthorizedSession } from "@/server/auth/authorize";
 import { logger } from "@/lib/logger";
+import { safeJsonParse } from "@/lib/utils";
 
 export async function GET(request: NextRequest) {
   try {
@@ -38,7 +39,7 @@ export async function GET(request: NextRequest) {
     let rows = candidates.map((c) => {
       const evaluation = c.evaluations[0] || null;
       const decision = c.decisions[0] || null;
-      const redFlags = evaluation ? JSON.parse(evaluation.redFlags) : [];
+      const redFlags = evaluation ? safeJsonParse<string[]>(evaluation.redFlags, []) : [];
 
       return {
         nombre: c.fullName,

@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { rename, access } from "fs/promises";
-import { join } from "path";
+import { list, copy } from "@vercel/blob";
 import { prisma } from "@/server/db/prisma";
 import { validateFullInterview, normalizePhone } from "@/domain/validation";
 import { interviewSubmissionSchema } from "@/domain/schemas";
@@ -86,16 +85,19 @@ export async function POST(request: NextRequest) {
     // Link uploaded photo to candidate if provided
     if (photoToken) {
       try {
-        const photosDir = join(process.cwd(), "uploads", "candidate-photos");
-        const tokenDir = join(photosDir, photoToken);
-        const candidateDir = join(photosDir, result.candidateId);
-        await access(tokenDir);
-        await rename(tokenDir, candidateDir);
-        await prisma.candidate.update({
-          where: { id: result.candidateId },
-          data: { photoPath: candidateDir },
-        });
-        logger.info("Candidate photo linked", { candidateId: result.candidateId });
+        // Find the blob uploaded with this token
+        const { blobs } = await list({ prefix: `candidate-photos/${photoToken}/` });
+        if (blobs.length > 0) {
+          const originalBlob = blobs[0];
+          // Copy to candidate-specific path
+          const newPath = `candidate-photos/${result.candidateId}/photo.${originalBlob.pathname.endsWith(".png") ? "png" : "jpg"}`;
+          const newBlob = await copy(originalBlob.url, newPath, { access: "public" });
+          await prisma.candidate.update({
+            where: { id: result.candidateId },
+            data: { photoPath: newBlob.url },
+          });
+          logger.info("Candidate photo linked", { candidateId: result.candidateId, url: newBlob.url });
+        }
       } catch {
         logger.warn("Failed to link candidate photo", { photoToken, candidateId: result.candidateId });
       }

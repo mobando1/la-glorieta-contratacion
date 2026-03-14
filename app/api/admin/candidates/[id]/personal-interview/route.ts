@@ -7,6 +7,7 @@ import { runPersonalInterviewEvaluation } from "@/server/jobs/evaluation-runner"
 import { sendPostInterviewPassedEmail } from "@/server/services/email";
 import type { CandidateStatus } from "@/domain/types";
 import { logger } from "@/lib/logger";
+import { safeJsonParse } from "@/lib/utils";
 
 export async function GET(
   _request: NextRequest,
@@ -40,14 +41,14 @@ export async function GET(
     return NextResponse.json({
       personalInterview: {
         ...personalInterview,
-        adminObservations: JSON.parse(personalInterview.adminObservations),
-        answers: JSON.parse(personalInterview.answers),
+        adminObservations: safeJsonParse(personalInterview.adminObservations, {}),
+        answers: safeJsonParse(personalInterview.answers, {}),
         evaluations: undefined,
       },
       personalEvaluation: evaluation
         ? {
             ...evaluation,
-            redFlags: JSON.parse(evaluation.redFlags),
+            redFlags: safeJsonParse<string[]>(evaluation.redFlags, []),
           }
         : null,
     });
@@ -153,8 +154,10 @@ export async function POST(
 
     return NextResponse.json({ ok: true, personalInterviewId: personalInterviewId! });
   } catch (error) {
-    const message = error instanceof Error ? error.message : "Error interno del servidor";
-    const status = message.includes("Transición") ? 400 : 500;
-    return NextResponse.json({ error: message }, { status });
+    if (error instanceof Error && error.message.includes("Transición")) {
+      return NextResponse.json({ error: error.message }, { status: 400 });
+    }
+    logger.error("Error in personal interview", { error: String(error) });
+    return NextResponse.json({ error: "Error interno del servidor" }, { status: 500 });
   }
 }

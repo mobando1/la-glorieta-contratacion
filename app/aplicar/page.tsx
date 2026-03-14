@@ -148,6 +148,11 @@ export default function AplicarPage() {
       }
     }
 
+    // Photo validation (required on basic step)
+    if (step.id === "basic" && !sectionData.photoToken) {
+      newErrors.photoToken = "La foto es obligatoria";
+    }
+
     // Phone validation
     if (step.id === "basic" && !newErrors.phone) {
       const phone = (sectionData.phone as string) || "";
@@ -225,7 +230,7 @@ export default function AplicarPage() {
         }
       }
     } catch {
-      showToast("Error de conexión. Verifica tu internet e intenta de nuevo.", "error");
+      showToast("Error de conexión. Verifica tu internet e intenta de nuevo. Si persiste, escríbenos a laglorietarest@gmail.com", "error");
     } finally {
       setSubmitting(false);
     }
@@ -250,6 +255,10 @@ export default function AplicarPage() {
           </p>
           <p className="mt-6 text-sm text-gray-400">
             La Glorieta | Salom&eacute; Restaurante | Salom&eacute; Helader&iacute;a &mdash; Guaduas, Cundinamarca
+          </p>
+          <p className="mt-3 text-xs text-gray-400">
+            ¿Tienes alguna pregunta? Escr&iacute;benos a{" "}
+            <a href="mailto:laglorietarest@gmail.com" className="text-primary-400 underline">laglorietarest@gmail.com</a>
           </p>
         </div>
       </main>
@@ -310,10 +319,15 @@ export default function AplicarPage() {
                 );
               })}
               {step.id === "basic" && (
-                <PhotoUpload
-                  currentToken={formData.basic.photoToken as string | null}
-                  onUploaded={(token) => updateField("basic", "photoToken", token)}
-                />
+                <>
+                  <PhotoUpload
+                    currentToken={formData.basic.photoToken as string | null}
+                    onUploaded={(token) => updateField("basic", "photoToken", token)}
+                  />
+                  {errors.photoToken && (
+                    <p className="mt-1 text-sm text-red-600">{errors.photoToken}</p>
+                  )}
+                </>
               )}
             </div>
           )}
@@ -372,8 +386,9 @@ function QuestionField({
   if (q.type === "text") {
     return (
       <div>
-        <label className="mb-1 block text-sm font-medium text-gray-700">{q.label}</label>
+        <label htmlFor={`q-${q.id}`} className="mb-1 block text-sm font-medium text-gray-700">{q.label}</label>
         <input
+          id={`q-${q.id}`}
           type="text"
           value={(value as string) || ""}
           onChange={(e) => onChange(e.target.value)}
@@ -390,8 +405,9 @@ function QuestionField({
   if (q.type === "textarea") {
     return (
       <div>
-        <label className="mb-1 block text-sm font-medium text-gray-700">{q.label}</label>
+        <label htmlFor={`q-${q.id}`} className="mb-1 block text-sm font-medium text-gray-700">{q.label}</label>
         <textarea
+          id={`q-${q.id}`}
           value={(value as string) || ""}
           onChange={(e) => onChange(e.target.value)}
           placeholder={q.placeholder}
@@ -408,8 +424,9 @@ function QuestionField({
   if (q.type === "number") {
     return (
       <div>
-        <label className="mb-1 block text-sm font-medium text-gray-700">{q.label}</label>
+        <label htmlFor={`q-${q.id}`} className="mb-1 block text-sm font-medium text-gray-700">{q.label}</label>
         <input
+          id={`q-${q.id}`}
           type="number"
           value={value != null ? String(value) : ""}
           onChange={(e) => onChange(e.target.value)}
@@ -425,8 +442,9 @@ function QuestionField({
   if (q.type === "select") {
     return (
       <div>
-        <label className="mb-1 block text-sm font-medium text-gray-700">{q.label}</label>
+        <label htmlFor={`q-${q.id}`} className="mb-1 block text-sm font-medium text-gray-700">{q.label}</label>
         <select
+          id={`q-${q.id}`}
           value={(value as string) || ""}
           onChange={(e) => onChange(e.target.value)}
           className={`${baseInputClass} ${errorClass}`}
@@ -446,8 +464,8 @@ function QuestionField({
     const selected = (value as string[]) || [];
     return (
       <div>
-        <label className="mb-2 block text-sm font-medium text-gray-700">{q.label}</label>
-        <div className="space-y-2">
+        <label id={`q-${q.id}`} className="mb-2 block text-sm font-medium text-gray-700">{q.label}</label>
+        <div className="space-y-2" aria-labelledby={`q-${q.id}`}>
           {q.options?.map((opt) => (
             <label
               key={opt.value}
@@ -481,8 +499,8 @@ function QuestionField({
   if (q.type === "boolean") {
     return (
       <div>
-        <label className="mb-2 block text-sm font-medium text-gray-700">{q.label}</label>
-        <div className="flex gap-3">
+        <label id={`q-${q.id}`} className="mb-2 block text-sm font-medium text-gray-700">{q.label}</label>
+        <div className="flex gap-3" role="group" aria-labelledby={`q-${q.id}`}>
           <button
             type="button"
             onClick={() => onChange(true)}
@@ -524,8 +542,9 @@ function QuestionField({
     const maxDateStr = maxDate.toISOString().split("T")[0];
     return (
       <div>
-        <label className="mb-1 block text-sm font-medium text-gray-700">{q.label}</label>
+        <label htmlFor={`q-${q.id}`} className="mb-1 block text-sm font-medium text-gray-700">{q.label}</label>
         <input
+          id={`q-${q.id}`}
           type="date"
           value={(value as string) || ""}
           onChange={(e) => onChange(e.target.value)}

@@ -12,10 +12,10 @@ export default function GlobalError({
       <div className="w-full max-w-md rounded-xl bg-white p-8 text-center shadow-lg">
         <div className="mb-4 text-4xl text-red-500">!</div>
         <h2 className="mb-2 text-xl font-bold text-gray-900">
-          Algo salio mal
+          Algo salió mal
         </h2>
         <p className="mb-6 text-sm text-gray-600">
-          Ocurrio un error inesperado. Por favor intenta de nuevo.
+          Ocurrió un error inesperado. Por favor intenta de nuevo.
         </p>
         <button
           onClick={reset}

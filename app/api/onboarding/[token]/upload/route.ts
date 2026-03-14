@@ -1,11 +1,10 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/server/db/prisma";
-import { writeFile, mkdir } from "fs/promises";
-import { join } from "path";
+import { put } from "@vercel/blob";
+import { checkRateLimit } from "@/lib/rate-limit";
 
 const ALLOWED_MIME_TYPES = ["image/jpeg", "image/png", "application/pdf"];
 const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
-const UPLOADS_DIR = join(process.cwd(), "uploads", "documents");
 
 export async function POST(
   request: Request,
@@ -13,6 +12,14 @@ export async function POST(
 ) {
   try {
     const { token } = await params;
+
+    const ip = request.headers.get("x-forwarded-for") || "unknown";
+    if (!(await checkRateLimit(ip, 20, { prefix: "onboarding-upload-" }))) {
+      return NextResponse.json(
+        { error: "Demasiadas solicitudes. Intenta más tarde." },
+        { status: 429 }
+      );
+    }
 
     const employee = await prisma.employee.findUnique({
       where: { onboardingToken: token },
@@ -63,24 +70,21 @@ export async function POST(
       .replace(/[^a-zA-Z0-9._-]/g, "_")
       .substring(0, 100);
     const uniquePrefix = crypto.randomUUID().substring(0, 8);
-    const fileName = `${uniquePrefix}-${sanitizedName}`;
+    const blobPath = `documents/${employee.id}/${uniquePrefix}-${sanitizedName}`;
 
-    // Ensure directory exists
-    const employeeDir = join(UPLOADS_DIR, employee.id);
-    await mkdir(employeeDir, { recursive: true });
+    // Upload to Vercel Blob
+    const blob = await put(blobPath, file, {
+      access: "public",
+      contentType: file.type,
+    });
 
-    // Write file
-    const filePath = join(employeeDir, fileName);
-    const buffer = Buffer.from(await file.arrayBuffer());
-    await writeFile(filePath, buffer);
-
-    // Create document record
+    // Create document record with blob URL
     const document = await prisma.document.create({
       data: {
         employeeId: employee.id,
         type: docType,
         fileName: sanitizedName,
-        filePath,
+        filePath: blob.url,
         fileSize: file.size,
         mimeType: file.type,
       },

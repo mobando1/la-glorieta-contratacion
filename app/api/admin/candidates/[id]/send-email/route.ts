@@ -37,11 +37,15 @@ export async function POST(
 
     const candidate = await prisma.candidate.findUnique({
       where: { id },
-      select: { email: true, fullName: true },
+      select: { email: true, fullName: true, restaurantId: true },
     });
 
     if (!candidate) {
       return NextResponse.json({ error: "Candidato no encontrado" }, { status: 404 });
+    }
+
+    if (!session.isSuperAdmin && candidate.restaurantId && !session.restaurantIds.includes(candidate.restaurantId)) {
+      return NextResponse.json({ error: "Sin permiso para este candidato" }, { status: 403 });
     }
 
     if (!candidate.email) {

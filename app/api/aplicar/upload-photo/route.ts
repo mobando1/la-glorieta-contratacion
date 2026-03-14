@@ -1,12 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
-import { writeFile, mkdir } from "fs/promises";
-import { join } from "path";
+import { put } from "@vercel/blob";
 import { v4 as uuidv4 } from "uuid";
 import { logger } from "@/lib/logger";
 import { checkRateLimit } from "@/lib/rate-limit";
 
-const MAX_FILE_SIZE = 3 * 1024 * 1024; // 3MB
-const ALLOWED_TYPES = ["image/jpeg", "image/png"];
+const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
+const ALLOWED_TYPES = ["image/jpeg", "image/png", "image/heic", "image/heif"];
 
 export async function POST(request: NextRequest) {
   try {
@@ -30,31 +29,30 @@ export async function POST(request: NextRequest) {
 
     if (!ALLOWED_TYPES.includes(file.type)) {
       return NextResponse.json(
-        { error: "Solo se aceptan archivos JPG o PNG." },
+        { error: "Solo se aceptan archivos JPG, PNG o HEIC." },
         { status: 400 }
       );
     }
 
     if (file.size > MAX_FILE_SIZE) {
       return NextResponse.json(
-        { error: "La foto no puede superar 3MB." },
+        { error: "La foto no puede superar 10MB." },
         { status: 400 }
       );
     }
 
     const photoToken = uuidv4();
     const ext = file.type === "image/png" ? "png" : "jpg";
-    const fileName = `photo.${ext}`;
-    const dirPath = join(process.cwd(), "uploads", "candidate-photos", photoToken);
+    const fileName = `candidate-photos/${photoToken}/photo.${ext}`;
 
-    await mkdir(dirPath, { recursive: true });
+    const blob = await put(fileName, file, {
+      access: "public",
+      contentType: file.type === "image/heic" || file.type === "image/heif" ? "image/jpeg" : file.type,
+    });
 
-    const buffer = Buffer.from(await file.arrayBuffer());
-    await writeFile(join(dirPath, fileName), buffer);
+    logger.info("Candidate photo uploaded to blob", { photoToken, fileSize: file.size, url: blob.url });
 
-    logger.info("Candidate photo uploaded", { photoToken, fileSize: file.size, mimeType: file.type });
-
-    return NextResponse.json({ photoToken, fileName });
+    return NextResponse.json({ photoToken, fileName: `photo.${ext}`, blobUrl: blob.url });
   } catch (error) {
     logger.error("Error uploading candidate photo", { error });
     return NextResponse.json(

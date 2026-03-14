@@ -4,6 +4,7 @@ import { getAuthorizedSession } from "@/server/auth/authorize";
 import { validateTransition } from "@/domain/candidate-states";
 import { sendInterviewInvitation } from "@/server/services/email";
 import type { CandidateStatus } from "@/domain/types";
+import { logger } from "@/lib/logger";
 
 export async function POST(
   request: Request,
@@ -74,8 +75,9 @@ export async function POST(
 
     return NextResponse.json({ ok: true });
   } catch (error) {
-    const message = error instanceof Error ? error.message : "Error interno del servidor";
-    const status = message.includes("Transición") ? 400 : 500;
-    return NextResponse.json({ error: message }, { status });
+    if (error instanceof Error && error.message.includes("Transición")) {
+      return NextResponse.json({ error: error.message }, { status: 400 });
+    }
+    return NextResponse.json({ error: "Error interno del servidor" }, { status: 500 });
   }
 }

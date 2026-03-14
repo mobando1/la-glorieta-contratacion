@@ -1,14 +1,17 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/server/db/prisma";
-import { readFile, readdir } from "fs/promises";
-import { existsSync } from "fs";
-import { join } from "path";
+import { getAuthorizedSession } from "@/server/auth/authorize";
 
 export async function GET(
   _request: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const session = await getAuthorizedSession();
+    if (!session) {
+      return NextResponse.json({ error: "No autorizado" }, { status: 401 });
+    }
+
     const { id } = await params;
 
     const candidate = await prisma.candidate.findUnique({
@@ -20,28 +23,13 @@ export async function GET(
       return NextResponse.json({ error: "Foto no encontrada" }, { status: 404 });
     }
 
-    if (!existsSync(candidate.photoPath)) {
-      return NextResponse.json({ error: "Archivo no encontrado en disco" }, { status: 404 });
+    // photoPath is now a Blob URL — redirect to it
+    if (candidate.photoPath.startsWith("http")) {
+      return NextResponse.redirect(candidate.photoPath);
     }
 
-    // Find the photo file in the directory
-    const files = await readdir(candidate.photoPath);
-    const photoFile = files.find((f) => f.startsWith("photo."));
-    if (!photoFile) {
-      return NextResponse.json({ error: "Archivo de foto no encontrado" }, { status: 404 });
-    }
-
-    const filePath = join(candidate.photoPath, photoFile);
-    const fileBuffer = await readFile(filePath);
-    const mimeType = photoFile.endsWith(".png") ? "image/png" : "image/jpeg";
-
-    return new NextResponse(fileBuffer, {
-      headers: {
-        "Content-Type": mimeType,
-        "Content-Disposition": "inline",
-        "Cache-Control": "private, max-age=3600",
-      },
-    });
+    // Legacy: local filesystem path (shouldn't happen after migration)
+    return NextResponse.json({ error: "Foto no disponible" }, { status: 404 });
   } catch {
     return NextResponse.json({ error: "Error interno del servidor" }, { status: 500 });
   }
