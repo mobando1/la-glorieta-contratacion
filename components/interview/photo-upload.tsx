@@ -7,10 +7,26 @@ interface PhotoUploadProps {
   currentToken?: string | null;
 }
 
+const MAX_UPLOAD_SIZE = 4 * 1024 * 1024; // 4MB - Vercel serverless body limit
+
 async function compressImage(file: File, maxSize = 1200, quality = 0.8): Promise<File> {
-  // createImageBitmap supports HEIC on Safari/iOS, unlike new Image()
-  const bitmap = await createImageBitmap(file);
-  let { width, height } = bitmap;
+  // Try createImageBitmap first (supports HEIC on Safari/iOS)
+  // Fall back to new Image() for older browsers
+  let source: ImageBitmap | HTMLImageElement;
+  if (typeof createImageBitmap === "function") {
+    source = await createImageBitmap(file);
+  } else {
+    source = await new Promise<HTMLImageElement>((resolve, reject) => {
+      const img = new Image();
+      img.onload = () => resolve(img);
+      img.onerror = () => reject(new Error("Error al leer la imagen"));
+      img.src = URL.createObjectURL(file);
+    });
+  }
+
+  let width = source instanceof HTMLImageElement ? source.naturalWidth : source.width;
+  let height = source instanceof HTMLImageElement ? source.naturalHeight : source.height;
+
   if (width > maxSize || height > maxSize) {
     if (width > height) {
       height = Math.round((height * maxSize) / width);
@@ -20,12 +36,14 @@ async function compressImage(file: File, maxSize = 1200, quality = 0.8): Promise
       height = maxSize;
     }
   }
+
   const canvas = document.createElement("canvas");
   canvas.width = width;
   canvas.height = height;
   const ctx = canvas.getContext("2d")!;
-  ctx.drawImage(bitmap, 0, 0, width, height);
-  bitmap.close();
+  ctx.drawImage(source, 0, 0, width, height);
+  if ("close" in source) source.close();
+
   return new Promise((resolve, reject) => {
     canvas.toBlob(
       (blob) => {
@@ -59,21 +77,26 @@ export function PhotoUpload({ onUploaded, currentToken }: PhotoUploadProps) {
 
     setUploading(true);
     try {
-      // Try to compress; if it fails (e.g., HEIC), upload the original
       let fileToUpload: File;
       try {
         fileToUpload = await compressImage(file);
       } catch {
+        // Compression failed — check if original is small enough for Vercel
+        if (file.size > MAX_UPLOAD_SIZE) {
+          setError("No pudimos comprimir tu foto y es muy grande para subir. Intenta tomar la foto directamente con la cámara o enviar una imagen JPG más pequeña.");
+          setUploading(false);
+          return;
+        }
         fileToUpload = file;
       }
 
-      // Show preview (only works for browser-supported formats)
+      // Show preview
       try {
         const reader = new FileReader();
         reader.onload = (e) => setPreview(e.target?.result as string);
         reader.readAsDataURL(fileToUpload);
       } catch {
-        // Preview not available for this format — continue without it
+        // Preview not available — will show checkmark on success instead
       }
 
       const formData = new FormData();
@@ -89,8 +112,8 @@ export function PhotoUpload({ onUploaded, currentToken }: PhotoUploadProps) {
         setUploaded(true);
         onUploaded(data.photoToken);
       } else {
-        const data = await res.json();
-        setError(data.error || "Error al subir la foto. Puedes continuar sin foto si el problema persiste.");
+        const data = await res.json().catch(() => ({ error: null }));
+        setError(data.error || "Error al subir la foto. Si el problema persiste, escríbenos a laglorietarest@gmail.com");
         setPreview(null);
         if (inputRef.current) inputRef.current.value = "";
       }
@@ -130,9 +153,11 @@ export function PhotoUpload({ onUploaded, currentToken }: PhotoUploadProps) {
           onClick={() => !uploading && inputRef.current?.click()}
           onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); !uploading && inputRef.current?.click(); } }}
           className={`relative flex h-24 w-24 shrink-0 cursor-pointer items-center justify-center overflow-hidden rounded-full border-2 border-dashed transition-colors ${
-            preview
+            uploaded && !preview
               ? "border-primary-300 bg-primary-50"
-              : "border-gray-300 bg-white hover:border-gray-400"
+              : preview
+                ? "border-primary-300 bg-primary-50"
+                : "border-gray-300 bg-white hover:border-gray-400"
           }`}
         >
           <input
@@ -140,6 +165,7 @@ export function PhotoUpload({ onUploaded, currentToken }: PhotoUploadProps) {
             type="file"
             accept="image/*"
             onChange={handleInputChange}
+            disabled={uploading}
             className="hidden"
           />
 
@@ -151,6 +177,10 @@ export function PhotoUpload({ onUploaded, currentToken }: PhotoUploadProps) {
               alt="Preview"
               className="h-full w-full object-cover"
             />
+          ) : uploaded ? (
+            <svg className="h-8 w-8 text-primary-600" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" d="m4.5 12.75 6 6 9-13.5" />
+            </svg>
           ) : (
             <svg
               className="h-8 w-8 text-gray-400"
@@ -175,7 +205,7 @@ export function PhotoUpload({ onUploaded, currentToken }: PhotoUploadProps) {
 
         {/* Text and actions */}
         <div className="flex-1 text-center sm:text-left">
-          {uploaded && preview ? (
+          {uploaded ? (
             <div className="flex flex-col gap-1">
               <p className="text-sm font-medium text-primary-700">Foto subida correctamente</p>
               <button

@@ -88,6 +88,7 @@ export async function POST(request: NextRequest) {
         // Find the blob uploaded with this token
         const { blobs } = await list({ prefix: `candidate-photos/${photoToken}/` });
         if (blobs.length > 0) {
+          logger.info("Found photo blob to link", { photoToken, blobCount: blobs.length, blobUrl: blobs[0].url });
           const originalBlob = blobs[0];
           // Copy to candidate-specific path
           const newPath = `candidate-photos/${result.candidateId}/photo.${originalBlob.pathname.endsWith(".png") ? "png" : "jpg"}`;
@@ -98,8 +99,12 @@ export async function POST(request: NextRequest) {
           });
           logger.info("Candidate photo linked", { candidateId: result.candidateId, url: newBlob.url });
         }
-      } catch {
-        logger.warn("Failed to link candidate photo", { photoToken, candidateId: result.candidateId });
+      } catch (linkError) {
+        logger.warn("Failed to link candidate photo", {
+          photoToken,
+          candidateId: result.candidateId,
+          error: linkError instanceof Error ? linkError.message : String(linkError),
+        });
       }
     }
 
