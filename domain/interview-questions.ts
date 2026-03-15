@@ -40,9 +40,9 @@ const BASIC_QUESTIONS: Question[] = [
   },
   {
     id: "email",
-    label: "¿Cuál es tu correo electrónico? (opcional)",
+    label: "¿Cuál es tu correo electrónico?",
     type: "text",
-    required: false,
+    required: true,
     maxLength: 100,
     placeholder: "ejemplo@correo.com",
   },

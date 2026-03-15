@@ -20,7 +20,7 @@ export const interviewSubmissionSchema = z.object({
     basic: z.object({
       fullName: z.string().min(1).max(100),
       phone: z.string().min(1).max(15),
-      email: z.string().email().max(100).optional().or(z.literal("")),
+      email: z.string().email().min(1).max(100),
       positionApplied: z.enum(["MESERO", "COCINERA", "AUXILIAR_COCINA", "AUXILIAR_MESA"]),
       restaurantId: z.string().optional().or(z.literal("")),
       birthDate: z.string().min(1),
