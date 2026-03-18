@@ -4,6 +4,8 @@ import { getAuthorizedSession } from "@/server/auth/authorize";
 import { validateTransition } from "@/domain/candidate-states";
 import type { CandidateStatus } from "@/domain/types";
 import { z } from "zod";
+import { logger } from "@/lib/logger";
+import { sendRejectionEmail, sendDatabaseSavedEmail, sendHiredEmail } from "@/server/services/email";
 
 const finalDecisionSchema = z.object({
   decision: z.enum(["CONTRATADO", "BASE_DE_DATOS", "NO_CONTINUAR"]),
@@ -74,6 +76,23 @@ export async function POST(
         },
       });
     });
+
+    // Fire-and-forget: send email notification to candidate
+    if (candidate.email) {
+      const restaurantName = candidate.restaurant?.name;
+      const name = candidate.fullName || "Candidato";
+      try {
+        if (parsed.data.decision === "CONTRATADO") {
+          sendHiredEmail(candidate.email, name, candidate.positionApplied || "el cargo", restaurantName).catch(() => {});
+        } else if (parsed.data.decision === "NO_CONTINUAR") {
+          sendRejectionEmail(candidate.email, name, restaurantName).catch(() => {});
+        } else if (parsed.data.decision === "BASE_DE_DATOS") {
+          sendDatabaseSavedEmail(candidate.email, name, restaurantName).catch(() => {});
+        }
+      } catch {
+        logger.warn("Failed to send final decision email", { candidateId: id, decision: parsed.data.decision });
+      }
+    }
 
     return NextResponse.json({ ok: true });
   } catch (error) {

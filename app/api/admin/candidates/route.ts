@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/server/db/prisma";
 import { getAuthorizedSession } from "@/server/auth/authorize";
-import { POSITIONS, POSITION_LABELS, STATUS_LABELS } from "@/domain/types";
+import { POSITIONS, POSITION_LABELS, STATUS_LABELS, ID_DOCUMENT_TYPES } from "@/domain/types";
 import { safeJsonParse } from "@/lib/utils";
 import { logger } from "@/lib/logger";
 
@@ -13,11 +13,32 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json();
-    const { fullName, phone, email, positionApplied, restaurantId, notesAdmin } = body;
+    const { fullName, phone, phone2, email, documentType, documentNumber, birthDate, positionApplied, restaurantId, notesAdmin } = body;
 
     if (!fullName?.trim() || !phone?.trim() || !positionApplied) {
       return NextResponse.json(
         { error: "Nombre, teléfono y cargo son obligatorios" },
+        { status: 400 }
+      );
+    }
+
+    if (!documentType || !documentNumber?.trim()) {
+      return NextResponse.json(
+        { error: "Tipo y número de documento son obligatorios" },
+        { status: 400 }
+      );
+    }
+
+    if (!ID_DOCUMENT_TYPES.includes(documentType)) {
+      return NextResponse.json(
+        { error: "Tipo de documento inválido" },
+        { status: 400 }
+      );
+    }
+
+    if (!birthDate) {
+      return NextResponse.json(
+        { error: "Fecha de nacimiento es obligatoria" },
         { status: 400 }
       );
     }
@@ -33,7 +54,11 @@ export async function POST(request: NextRequest) {
       data: {
         fullName: fullName.trim(),
         phone: phone.trim(),
+        phone2: phone2?.trim() || null,
         email: email?.trim() || null,
+        documentType,
+        documentNumber: documentNumber.trim(),
+        birthDate: new Date(birthDate),
         positionApplied,
         restaurantId: restaurantId || null,
         notesAdmin: notesAdmin?.trim() || null,

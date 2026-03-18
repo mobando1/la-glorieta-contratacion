@@ -23,17 +23,21 @@ model Restaurant {
 }
 
 model Candidate {
-  id              String   @id @default(uuid())
+  id              String    @id @default(uuid())
   fullName        String
   phone           String
+  phone2          String?
   email           String?
+  documentType    String?
+  documentNumber  String?
+  birthDate       DateTime?
   positionApplied String
-  status          String   @default("NUEVO")
+  status          String    @default("NUEVO")
   notesAdmin      String?
   photoPath       String?
   restaurantId    String?
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
 
   restaurant          Restaurant?            @relation(fields: [restaurantId], references: [id])
   interviews          ApplicationInterview[]

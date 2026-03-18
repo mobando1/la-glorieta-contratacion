@@ -126,3 +126,67 @@ export async function GET(
     );
   }
 }
+
+export async function DELETE(
+  request: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  try {
+    const session = await getAuthorizedSession();
+    if (!session) {
+      return NextResponse.json({ error: "No autorizado" }, { status: 401 });
+    }
+
+    if (!session.isSuperAdmin) {
+      return NextResponse.json({ error: "Solo un Super Admin puede eliminar candidatos" }, { status: 403 });
+    }
+
+    const { id } = await params;
+    const body = await request.json();
+    const confirmName = (body.confirmName || "").trim().toLowerCase();
+
+    const candidate = await prisma.candidate.findUnique({
+      where: { id },
+      include: { employee: { select: { id: true } } },
+    });
+
+    if (!candidate) {
+      return NextResponse.json({ error: "Candidato no encontrado" }, { status: 404 });
+    }
+
+    if (confirmName !== candidate.fullName.toLowerCase()) {
+      return NextResponse.json({ error: "El nombre no coincide. Escribe el nombre exacto del candidato." }, { status: 400 });
+    }
+
+    await prisma.$transaction(async (tx) => {
+      // If candidate was hired, delete employee and sub-relations
+      if (candidate.employee) {
+        const empId = candidate.employee.id;
+        await tx.performanceReview.deleteMany({ where: { employeeId: empId } });
+        await tx.workPeriod.deleteMany({ where: { employeeId: empId } });
+        await tx.document.deleteMany({ where: { employeeId: empId } });
+        await tx.employee.delete({ where: { id: empId } });
+      }
+
+      // Delete candidate relations
+      await tx.aIEvaluation.deleteMany({ where: { candidateId: id } });
+      await tx.adminDecision.deleteMany({ where: { candidateId: id } });
+      await tx.personalInterview.deleteMany({ where: { candidateId: id } });
+      await tx.applicationInterview.deleteMany({ where: { candidateId: id } });
+      await tx.auditLog.deleteMany({ where: { entityId: id, entityType: "Candidate" } });
+
+      // Delete candidate
+      await tx.candidate.delete({ where: { id } });
+    });
+
+    logger.info("Candidate deleted", { candidateId: id, deletedBy: session.email });
+
+    return NextResponse.json({ ok: true });
+  } catch (error) {
+    logger.error("Error deleting candidate", { error: String(error) });
+    return NextResponse.json(
+      { error: "Error al eliminar el candidato" },
+      { status: 500 }
+    );
+  }
+}

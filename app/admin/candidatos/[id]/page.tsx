@@ -111,6 +111,11 @@ export default function CandidatoDetailPage({
   const [generatingLink, setGeneratingLink] = useState(false);
   const [onboardingLink, setOnboardingLink] = useState<string | null>(null);
 
+  // Delete candidate
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [deleteConfirmName, setDeleteConfirmName] = useState("");
+  const [deleting, setDeleting] = useState(false);
+
   useEffect(() => {
     fetchData();
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -285,6 +290,29 @@ export default function CandidatoDetailPage({
       showToast("Error de conexión", "error");
     } finally {
       setSubmittingFinal(false);
+    }
+  }
+
+  async function handleDeleteCandidate() {
+    if (!candidate) return;
+    setDeleting(true);
+    try {
+      const res = await fetch(`/api/admin/candidates/${id}`, {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ confirmName: deleteConfirmName }),
+      });
+      if (res.ok) {
+        showToast("Candidato eliminado permanentemente", "success");
+        router.push("/admin/candidatos");
+      } else {
+        const data = await res.json();
+        showToast(data.error || "Error al eliminar", "error");
+      }
+    } catch {
+      showToast("Error de conexión", "error");
+    } finally {
+      setDeleting(false);
     }
   }
 
@@ -839,11 +867,15 @@ export default function CandidatoDetailPage({
                   <div className="rounded-card bg-white p-5 shadow-card">
                     <h2 className="mb-4 text-sm font-semibold uppercase text-gray-500">Decisión Final</h2>
                     <div className="mb-4 flex gap-2">
-                      {["CONTRATADO", "BASE_DE_DATOS", "NO_CONTINUAR"].map((d) => (
+                      {([
+                        { key: "CONTRATADO", desc: "Contratar a esta persona" },
+                        { key: "BASE_DE_DATOS", desc: "Guardar para oportunidades futuras" },
+                        { key: "NO_CONTINUAR", desc: "Cerrar proceso con esta persona" },
+                      ] as const).map(({ key: d, desc }) => (
                         <button
                           key={d}
                           onClick={() => setFinalDecision(d)}
-                          className={`flex-1 rounded-lg border px-3 py-2.5 text-sm font-medium transition-colors ${
+                          className={`flex-1 rounded-lg border px-3 py-2.5 text-center transition-colors ${
                             finalDecision === d
                               ? d === "CONTRATADO"
                                 ? "border-teal-600 bg-teal-50 text-teal-700"
@@ -853,7 +885,8 @@ export default function CandidatoDetailPage({
                               : "border-gray-200 text-gray-600 hover:bg-gray-50"
                           }`}
                         >
-                          {STATUS_LABELS[d as CandidateStatus]}
+                          <span className="block text-sm font-medium">{STATUS_LABELS[d as CandidateStatus]}</span>
+                          <span className="block text-[11px] font-normal opacity-70">{desc}</span>
                         </button>
                       ))}
                     </div>
@@ -917,11 +950,15 @@ export default function CandidatoDetailPage({
                   Tomar Decisión
                 </h2>
                 <div className="mb-4 flex gap-2">
-                  {["PRESELECCIONADO", "BASE_DE_DATOS", "NO_CONTINUAR"].map((d) => (
+                  {([
+                    { key: "PRESELECCIONADO", desc: "Pasa a entrevista personal" },
+                    { key: "BASE_DE_DATOS", desc: "Guardar para oportunidades futuras" },
+                    { key: "NO_CONTINUAR", desc: "Cerrar proceso con esta persona" },
+                  ] as const).map(({ key: d, desc }) => (
                     <button
                       key={d}
                       onClick={() => setSelectedDecision(d)}
-                      className={`flex-1 rounded-lg border px-3 py-2.5 text-sm font-medium transition-colors ${
+                      className={`flex-1 rounded-lg border px-3 py-2.5 text-center transition-colors ${
                         selectedDecision === d
                           ? d === "PRESELECCIONADO"
                             ? "border-primary-600 bg-primary-50 text-primary-700"
@@ -931,7 +968,8 @@ export default function CandidatoDetailPage({
                           : "border-gray-200 text-gray-600 hover:bg-gray-50"
                       }`}
                     >
-                      {STATUS_LABELS[d as CandidateStatus]}
+                      <span className="block text-sm font-medium">{STATUS_LABELS[d as CandidateStatus]}</span>
+                      <span className="block text-[11px] font-normal opacity-70">{desc}</span>
                     </button>
                   ))}
                 </div>
@@ -1024,6 +1062,47 @@ export default function CandidatoDetailPage({
                 </div>
               </div>
             )}
+
+            {/* Delete candidate */}
+            <div className="rounded-card border border-red-200 bg-white p-5 shadow-card">
+              <h2 className="mb-2 text-sm font-semibold uppercase text-red-500">Zona de peligro</h2>
+              {!showDeleteConfirm ? (
+                <button
+                  onClick={() => setShowDeleteConfirm(true)}
+                  className="rounded-lg border border-red-300 px-4 py-2 text-sm font-medium text-red-600 transition-colors hover:bg-red-50"
+                >
+                  Eliminar candidato
+                </button>
+              ) : (
+                <div className="space-y-3">
+                  <p className="text-sm text-gray-700">
+                    Para eliminar a <strong>{candidate.fullName}</strong>, escribe su nombre completo:
+                  </p>
+                  <input
+                    type="text"
+                    value={deleteConfirmName}
+                    onChange={(e) => setDeleteConfirmName(e.target.value)}
+                    placeholder={candidate.fullName}
+                    className="w-full rounded-lg border border-red-300 px-3 py-2 text-sm focus:border-red-500 focus:outline-none focus:ring-1 focus:ring-red-500"
+                  />
+                  <div className="flex gap-2">
+                    <button
+                      onClick={handleDeleteCandidate}
+                      disabled={deleting || deleteConfirmName.trim().toLowerCase() !== candidate.fullName.toLowerCase()}
+                      className="rounded-lg bg-red-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-red-700 disabled:opacity-50"
+                    >
+                      {deleting ? "Eliminando..." : "Eliminar permanentemente"}
+                    </button>
+                    <button
+                      onClick={() => { setShowDeleteConfirm(false); setDeleteConfirmName(""); }}
+                      className="rounded-lg border border-gray-200 px-4 py-2 text-sm text-gray-600 hover:bg-gray-50"
+                    >
+                      Cancelar
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
           </div>
         )}
       </div>

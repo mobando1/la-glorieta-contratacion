@@ -5,6 +5,7 @@ import { validateTransition } from "@/domain/candidate-states";
 import { decisionSchema } from "@/domain/schemas";
 import { logger } from "@/lib/logger";
 import type { CandidateStatus } from "@/domain/types";
+import { sendPreselectionEmail, sendRejectionEmail, sendDatabaseSavedEmail } from "@/server/services/email";
 
 export async function POST(
   request: NextRequest,
@@ -108,6 +109,23 @@ export async function POST(
         },
       });
     });
+
+    // Fire-and-forget: send email notification to candidate
+    if (candidate.email) {
+      const restaurantName = candidate.restaurant?.name;
+      const name = candidate.fullName || "Candidato";
+      try {
+        if (decision === "PRESELECCIONADO") {
+          sendPreselectionEmail(candidate.email, name, restaurantName).catch(() => {});
+        } else if (decision === "NO_CONTINUAR") {
+          sendRejectionEmail(candidate.email, name, restaurantName).catch(() => {});
+        } else if (decision === "BASE_DE_DATOS") {
+          sendDatabaseSavedEmail(candidate.email, name, restaurantName).catch(() => {});
+        }
+      } catch {
+        logger.warn("Failed to send decision email", { candidateId: id, decision });
+      }
+    }
 
     return NextResponse.json({ success: true });
   } catch (error) {

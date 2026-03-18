@@ -117,6 +117,18 @@ export interface InterviewAnswers {
   };
 }
 
+// Identity Document Types (for candidate registration)
+export const ID_DOCUMENT_TYPES = ["CC", "TI", "CE", "PPT", "PEP"] as const;
+export type IdDocumentType = (typeof ID_DOCUMENT_TYPES)[number];
+
+export const ID_DOCUMENT_LABELS: Record<IdDocumentType, string> = {
+  CC: "Cédula de Ciudadanía",
+  TI: "Tarjeta de Identidad",
+  CE: "Cédula de Extranjería",
+  PPT: "Permiso por Protección Temporal",
+  PEP: "Permiso Especial de Permanencia",
+};
+
 export const ONBOARDING_STATUSES = ["PENDIENTE", "EN_PROGRESO", "COMPLETADO"] as const;
 export type OnboardingStatus = (typeof ONBOARDING_STATUSES)[number];
 

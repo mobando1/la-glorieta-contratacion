@@ -3,8 +3,8 @@
 import { useState, useEffect, useCallback, Suspense } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
-import { POSITIONS, POSITION_LABELS } from "@/domain/types";
-import type { Position } from "@/domain/types";
+import { POSITIONS, POSITION_LABELS, ID_DOCUMENT_TYPES, ID_DOCUMENT_LABELS } from "@/domain/types";
+import type { Position, IdDocumentType } from "@/domain/types";
 import { StatusBadge, ScoreBadge } from "@/components/ui/badges";
 import { StatCard } from "@/components/ui/stat-card";
 
@@ -65,7 +65,11 @@ function CandidatosContent() {
   const [showForm, setShowForm] = useState(false);
   const [formFullName, setFormFullName] = useState("");
   const [formPhone, setFormPhone] = useState("");
+  const [formPhone2, setFormPhone2] = useState("");
   const [formEmail, setFormEmail] = useState("");
+  const [formDocumentType, setFormDocumentType] = useState("");
+  const [formDocumentNumber, setFormDocumentNumber] = useState("");
+  const [formBirthDate, setFormBirthDate] = useState("");
   const [formPosition, setFormPosition] = useState("");
   const [formRestaurant, setFormRestaurant] = useState("");
   const [formNotes, setFormNotes] = useState("");
@@ -130,7 +134,11 @@ function CandidatosContent() {
   function openNewCandidateForm() {
     setFormFullName("");
     setFormPhone("");
+    setFormPhone2("");
     setFormEmail("");
+    setFormDocumentType("");
+    setFormDocumentNumber("");
+    setFormBirthDate("");
     setFormPosition("");
     setFormRestaurant("");
     setFormNotes("");
@@ -150,6 +158,14 @@ function CandidatosContent() {
       setFormError("Nombre, teléfono y cargo son obligatorios");
       return;
     }
+    if (!formDocumentType || !formDocumentNumber.trim()) {
+      setFormError("Tipo y número de documento son obligatorios");
+      return;
+    }
+    if (!formBirthDate) {
+      setFormError("Fecha de nacimiento es obligatoria");
+      return;
+    }
     setFormSaving(true);
     try {
       const res = await fetch("/api/admin/candidates", {
@@ -158,7 +174,11 @@ function CandidatosContent() {
         body: JSON.stringify({
           fullName: formFullName,
           phone: formPhone,
+          phone2: formPhone2 || undefined,
           email: formEmail || undefined,
+          documentType: formDocumentType,
+          documentNumber: formDocumentNumber,
+          birthDate: formBirthDate,
           positionApplied: formPosition,
           restaurantId: formRestaurant || undefined,
           notesAdmin: formNotes || undefined,
@@ -573,6 +593,57 @@ function CandidatosContent() {
                     type="tel"
                     value={formPhone}
                     onChange={(e) => setFormPhone(e.target.value)}
+                    className="w-full rounded-lg border border-gray-200 px-3 py-2.5 text-sm ring-1 ring-gray-100 focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500"
+                  />
+                </div>
+                <div>
+                  <label className="mb-1 block text-sm font-medium text-gray-700">
+                    Segundo celular
+                  </label>
+                  <input
+                    type="tel"
+                    value={formPhone2}
+                    onChange={(e) => setFormPhone2(e.target.value)}
+                    placeholder="Opcional"
+                    className="w-full rounded-lg border border-gray-200 px-3 py-2.5 text-sm ring-1 ring-gray-100 focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500"
+                  />
+                </div>
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="mb-1 block text-sm font-medium text-gray-700">
+                      Tipo de documento <span className="text-red-500">*</span>
+                    </label>
+                    <select
+                      value={formDocumentType}
+                      onChange={(e) => setFormDocumentType(e.target.value)}
+                      className="w-full rounded-lg border border-gray-200 px-3 py-2.5 text-sm ring-1 ring-gray-100 focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500"
+                    >
+                      <option value="">Seleccionar...</option>
+                      {ID_DOCUMENT_TYPES.map((dt) => (
+                        <option key={dt} value={dt}>{ID_DOCUMENT_LABELS[dt as IdDocumentType]}</option>
+                      ))}
+                    </select>
+                  </div>
+                  <div>
+                    <label className="mb-1 block text-sm font-medium text-gray-700">
+                      Número de documento <span className="text-red-500">*</span>
+                    </label>
+                    <input
+                      type="text"
+                      value={formDocumentNumber}
+                      onChange={(e) => setFormDocumentNumber(e.target.value)}
+                      className="w-full rounded-lg border border-gray-200 px-3 py-2.5 text-sm ring-1 ring-gray-100 focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500"
+                    />
+                  </div>
+                </div>
+                <div>
+                  <label className="mb-1 block text-sm font-medium text-gray-700">
+                    Fecha de nacimiento <span className="text-red-500">*</span>
+                  </label>
+                  <input
+                    type="date"
+                    value={formBirthDate}
+                    onChange={(e) => setFormBirthDate(e.target.value)}
                     className="w-full rounded-lg border border-gray-200 px-3 py-2.5 text-sm ring-1 ring-gray-100 focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500"
                   />
                 </div>
