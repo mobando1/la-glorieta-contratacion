@@ -111,6 +111,10 @@ export default function CandidatoDetailPage({
   const [generatingLink, setGeneratingLink] = useState(false);
   const [onboardingLink, setOnboardingLink] = useState<string | null>(null);
 
+  // Photo upload
+  const [uploadingPhoto, setUploadingPhoto] = useState(false);
+  const [photoKey, setPhotoKey] = useState(0); // force re-render after upload
+
   // Delete candidate
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [deleteConfirmName, setDeleteConfirmName] = useState("");
@@ -293,6 +297,63 @@ export default function CandidatoDetailPage({
     }
   }
 
+  async function handlePhotoUpload(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file || !candidate) return;
+    e.target.value = ""; // reset input
+
+    setUploadingPhoto(true);
+    try {
+      // Compress image client-side
+      let blob: Blob = file;
+      try {
+        const bmp = await createImageBitmap(file);
+        const maxDim = 1200;
+        let w = bmp.width;
+        let h = bmp.height;
+        if (w > maxDim || h > maxDim) {
+          const ratio = Math.min(maxDim / w, maxDim / h);
+          w = Math.round(w * ratio);
+          h = Math.round(h * ratio);
+        }
+        const canvas = document.createElement("canvas");
+        canvas.width = w;
+        canvas.height = h;
+        const ctx = canvas.getContext("2d")!;
+        ctx.drawImage(bmp, 0, 0, w, h);
+        bmp.close();
+        blob = await new Promise<Blob>((resolve, reject) => {
+          canvas.toBlob((b) => (b ? resolve(b) : reject(new Error("toBlob failed"))), "image/jpeg", 0.8);
+        });
+      } catch {
+        if (file.size > 4 * 1024 * 1024) {
+          showToast("No se pudo comprimir la imagen y supera 4MB", "error");
+          setUploadingPhoto(false);
+          return;
+        }
+      }
+
+      const formData = new FormData();
+      formData.append("photo", blob, "photo.jpg");
+      const res = await fetch(`/api/admin/candidates/${id}/photo`, {
+        method: "PUT",
+        body: formData,
+      });
+      if (res.ok) {
+        showToast("Foto actualizada", "success");
+        setPhotoKey((k) => k + 1);
+        setCandidate((prev) => prev ? { ...prev, photoPath: "updated" } : prev);
+      } else {
+        const data = await res.json();
+        showToast(data.error || "Error al subir la foto", "error");
+      }
+    } catch {
+      showToast("Error de conexión al subir foto", "error");
+    } finally {
+      setUploadingPhoto(false);
+    }
+  }
+
   async function handleDeleteCandidate() {
     if (!candidate) return;
     setDeleting(true);
@@ -388,17 +449,46 @@ export default function CandidatoDetailPage({
           &larr; Candidatos
         </Link>
         <div className="mt-1 flex items-center gap-3">
-          {candidate.photoPath ? (
-            <img
-              src={`/api/admin/candidates/${candidate.id}/photo`}
-              alt={`Foto de ${candidate.fullName}`}
-              className="h-20 w-20 rounded-full object-cover border-2 border-primary-200"
-            />
-          ) : (
-            <div className="flex h-20 w-20 items-center justify-center rounded-full border-2 border-gray-200 bg-gray-200 text-xl font-semibold text-gray-500">
-              {candidate.fullName.split(" ").map(n => n[0]).slice(0, 2).join("").toUpperCase()}
+          <button
+            type="button"
+            onClick={() => document.getElementById("photo-upload-input")?.click()}
+            className="group relative shrink-0"
+            disabled={uploadingPhoto}
+            title="Cambiar foto"
+          >
+            {candidate.photoPath ? (
+              <img
+                key={photoKey}
+                src={`/api/admin/candidates/${candidate.id}/photo?v=${photoKey}`}
+                alt={`Foto de ${candidate.fullName}`}
+                className="h-20 w-20 rounded-full object-cover border-2 border-primary-200"
+              />
+            ) : (
+              <div className="flex h-20 w-20 items-center justify-center rounded-full border-2 border-gray-200 bg-gray-200 text-xl font-semibold text-gray-500">
+                {candidate.fullName.split(" ").map(n => n[0]).slice(0, 2).join("").toUpperCase()}
+              </div>
+            )}
+            <div className="absolute inset-0 flex items-center justify-center rounded-full bg-black/0 transition-colors group-hover:bg-black/40">
+              {uploadingPhoto ? (
+                <svg className="h-6 w-6 animate-spin text-white" fill="none" viewBox="0 0 24 24">
+                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                </svg>
+              ) : (
+                <svg className="h-6 w-6 text-white opacity-0 transition-opacity group-hover:opacity-100" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M6.827 6.175A2.31 2.31 0 0 1 5.186 7.23c-.38.054-.757.112-1.134.175C2.999 7.58 2.25 8.507 2.25 9.574V18a2.25 2.25 0 0 0 2.25 2.25h15A2.25 2.25 0 0 0 21.75 18V9.574c0-1.067-.75-1.994-1.802-2.169a47.865 47.865 0 0 0-1.134-.175 2.31 2.31 0 0 1-1.64-1.055l-.822-1.316a2.192 2.192 0 0 0-1.736-1.039 48.774 48.774 0 0 0-5.232 0 2.192 2.192 0 0 0-1.736 1.039l-.821 1.316Z" />
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M16.5 12.75a4.5 4.5 0 1 1-9 0 4.5 4.5 0 0 1 9 0Z" />
+                </svg>
+              )}
             </div>
-          )}
+          </button>
+          <input
+            id="photo-upload-input"
+            type="file"
+            accept="image/*"
+            className="hidden"
+            onChange={handlePhotoUpload}
+          />
           <div>
             <h1 className="text-2xl font-bold text-gray-900">{candidate.fullName}</h1>
           </div>
