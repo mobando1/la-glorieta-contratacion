@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/server/db/prisma";
 import { getAuthorizedSession } from "@/server/auth/authorize";
-import { put, del } from "@vercel/blob";
+import { get, put, del } from "@vercel/blob";
 import { logger } from "@/lib/logger";
 
 const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
@@ -27,17 +27,16 @@ export async function GET(
       return NextResponse.json({ error: "Foto no encontrada" }, { status: 404 });
     }
 
-    // photoPath is a private Blob URL — fetch and stream to client
+    // photoPath is a private Blob URL — use @vercel/blob get() for authenticated access
     if (candidate.photoPath.startsWith("http")) {
-      const blobResponse = await fetch(candidate.photoPath);
-      if (!blobResponse.ok) {
-        logger.warn("Failed to fetch photo from blob", { id, status: blobResponse.status });
+      const result = await get(candidate.photoPath, { access: "private" });
+      if (!result || result.statusCode !== 200) {
+        logger.warn("Failed to fetch photo from blob", { id });
         return NextResponse.json({ error: "Foto no disponible" }, { status: 404 });
       }
-      const contentType = blobResponse.headers.get("content-type") || "image/jpeg";
-      return new NextResponse(blobResponse.body, {
+      return new NextResponse(result.stream, {
         headers: {
-          "Content-Type": contentType,
+          "Content-Type": result.blob.contentType || "image/jpeg",
           "Cache-Control": "private, max-age=3600",
         },
       });
