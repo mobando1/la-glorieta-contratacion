@@ -27,9 +27,20 @@ export async function GET(
       return NextResponse.json({ error: "Foto no encontrada" }, { status: 404 });
     }
 
-    // photoPath is now a Blob URL — redirect to it
+    // photoPath is a private Blob URL — fetch and stream to client
     if (candidate.photoPath.startsWith("http")) {
-      return NextResponse.redirect(candidate.photoPath);
+      const blobResponse = await fetch(candidate.photoPath);
+      if (!blobResponse.ok) {
+        logger.warn("Failed to fetch photo from blob", { id, status: blobResponse.status });
+        return NextResponse.json({ error: "Foto no disponible" }, { status: 404 });
+      }
+      const contentType = blobResponse.headers.get("content-type") || "image/jpeg";
+      return new NextResponse(blobResponse.body, {
+        headers: {
+          "Content-Type": contentType,
+          "Cache-Control": "private, max-age=3600",
+        },
+      });
     }
 
     // Legacy: local filesystem path (shouldn't happen after migration)
