@@ -18,7 +18,13 @@ interface DocInfo {
   fileName: string;
 }
 
-type Step = 0 | 1 | 2;
+interface CompanyDocInfo {
+  id: string;
+  name: string;
+  fileName: string;
+}
+
+type Step = 0 | 1 | 2 | 3;
 
 export default function OnboardingPage({
   params,
@@ -44,6 +50,10 @@ export default function OnboardingPage({
   // File refs
   const [cedulaFrente, setCedulaFrente] = useState<{ id: string; fileName: string } | null>(null);
   const [cedulaReverso, setCedulaReverso] = useState<{ id: string; fileName: string } | null>(null);
+
+  // Company documents
+  const [companyDocs, setCompanyDocs] = useState<CompanyDocInfo[]>([]);
+  const [docsAcknowledged, setDocsAcknowledged] = useState(false);
 
   const [saving, setSaving] = useState(false);
   const [completing, setCompleting] = useState(false);
@@ -80,6 +90,17 @@ export default function OnboardingPage({
       if (frente) setCedulaFrente({ id: frente.id, fileName: frente.fileName });
       if (reverso) setCedulaReverso({ id: reverso.id, fileName: reverso.fileName });
 
+      // Fetch company documents
+      try {
+        const companyRes = await fetch(`/api/onboarding/${token}/company-documents`);
+        if (companyRes.ok) {
+          const companyData = await companyRes.json();
+          setCompanyDocs(companyData.documents);
+        }
+      } catch {
+        // Non-critical: continue without company docs
+      }
+
       if (data.employee.onboardingStatus === "COMPLETADO") {
         setCompleted(true);
       }
@@ -111,7 +132,7 @@ export default function OnboardingPage({
         body: JSON.stringify({ fullName, phone, email, address, cedulaNumber }),
       });
       if (res.ok) {
-        setStep(1);
+        setStep(hasCompanyDocs ? 1 : docsStep);
         window.scrollTo(0, 0);
       } else {
         const data = await res.json();
@@ -190,11 +211,23 @@ export default function OnboardingPage({
     );
   }
 
-  const STEPS = [
-    { title: "Datos Personales", shortTitle: "Datos" },
-    { title: "Documentos", shortTitle: "Docs" },
-    { title: "Confirmación", shortTitle: "Conf." },
-  ];
+  const hasCompanyDocs = companyDocs.length > 0;
+
+  const STEPS = hasCompanyDocs
+    ? [
+        { title: "Datos Personales", shortTitle: "Datos" },
+        { title: "Documentos Empresa", shortTitle: "Empresa" },
+        { title: "Tus Documentos", shortTitle: "Docs" },
+        { title: "Confirmación", shortTitle: "Conf." },
+      ]
+    : [
+        { title: "Datos Personales", shortTitle: "Datos" },
+        { title: "Documentos", shortTitle: "Docs" },
+        { title: "Confirmación", shortTitle: "Conf." },
+      ];
+
+  const docsStep = hasCompanyDocs ? 2 : 1;
+  const confirmStep = hasCompanyDocs ? 3 : 2;
 
   return (
     <div className="mx-auto max-w-lg px-4 py-6">
@@ -267,10 +300,83 @@ export default function OnboardingPage({
         </div>
       )}
 
-      {/* Step 1: Documents */}
-      {step === 1 && (
+      {/* Step 1: Company Documents (only if company docs exist) */}
+      {hasCompanyDocs && step === 1 && (
         <div className="animate-slide-up rounded-card border-t-4 border-primary-500 bg-white p-6 shadow-card">
-          <h2 className="mb-1 text-xl font-semibold text-gray-900">Documentos</h2>
+          <h2 className="mb-1 text-xl font-semibold text-gray-900">Documentos de la Empresa</h2>
+          <p className="mb-6 text-sm text-gray-500">
+            Por favor revisa y descarga los siguientes documentos importantes antes de continuar
+          </p>
+
+          <div className="space-y-3">
+            {companyDocs.map((doc) => (
+              <div
+                key={doc.id}
+                className="flex items-center justify-between rounded-lg border border-gray-200 p-4 transition-colors hover:bg-gray-50"
+              >
+                <div className="flex items-center gap-3">
+                  <svg className="h-8 w-8 flex-shrink-0 text-red-500" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 0 0-3.375-3.375h-1.5A1.125 1.125 0 0 1 13.5 7.125v-1.5a3.375 3.375 0 0 0-3.375-3.375H8.25m2.25 0H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 0 0-9-9Z" />
+                  </svg>
+                  <div>
+                    <p className="text-sm font-medium text-gray-900">{doc.name}</p>
+                    <p className="text-xs text-gray-400">{doc.fileName}</p>
+                  </div>
+                </div>
+                <a
+                  href={`/api/onboarding/${token}/company-documents/${doc.id}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="rounded-lg bg-primary-50 px-4 py-2 text-sm font-medium text-primary-700 transition-colors hover:bg-primary-100"
+                >
+                  Descargar
+                </a>
+              </div>
+            ))}
+          </div>
+
+          <label className="mt-6 flex cursor-pointer items-start gap-3 rounded-lg border border-gray-200 p-4">
+            <input
+              type="checkbox"
+              checked={docsAcknowledged}
+              onChange={(e) => setDocsAcknowledged(e.target.checked)}
+              className="mt-0.5 h-4 w-4 rounded border-gray-300 text-primary-600 focus:ring-primary-500"
+            />
+            <span className="text-sm text-gray-700">
+              He revisado y descargado los documentos de la empresa
+            </span>
+          </label>
+
+          <div className="mt-6 flex gap-3">
+            <button
+              onClick={() => { setStep(0); window.scrollTo(0, 0); }}
+              className="flex-1 rounded-lg border border-gray-200 px-4 py-3 font-medium text-gray-700 transition-colors hover:bg-gray-50"
+            >
+              Anterior
+            </button>
+            <button
+              onClick={() => {
+                if (!docsAcknowledged) {
+                  setError("Debes confirmar que revisaste los documentos");
+                  return;
+                }
+                setError(null);
+                setStep(docsStep as Step);
+                window.scrollTo(0, 0);
+              }}
+              disabled={!docsAcknowledged}
+              className="flex-1 rounded-lg bg-primary-600 px-4 py-3 font-medium text-white transition-all hover:bg-primary-700 active:scale-[0.98] disabled:opacity-50"
+            >
+              Siguiente
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Documents step: Upload cédula */}
+      {step === docsStep && (
+        <div className="animate-slide-up rounded-card border-t-4 border-primary-500 bg-white p-6 shadow-card">
+          <h2 className="mb-1 text-xl font-semibold text-gray-900">Tus Documentos</h2>
           <p className="mb-6 text-sm text-gray-500">Sube una foto o escaneo de tu cédula de ciudadanía</p>
 
           <div className="space-y-5">
@@ -293,7 +399,7 @@ export default function OnboardingPage({
 
           <div className="mt-6 flex gap-3">
             <button
-              onClick={() => { setStep(0); window.scrollTo(0, 0); }}
+              onClick={() => { setStep((hasCompanyDocs ? 1 : 0) as Step); window.scrollTo(0, 0); }}
               className="flex-1 rounded-lg border border-gray-200 px-4 py-3 font-medium text-gray-700 transition-colors hover:bg-gray-50"
             >
               Anterior
@@ -305,7 +411,7 @@ export default function OnboardingPage({
                   return;
                 }
                 setError(null);
-                setStep(2);
+                setStep(confirmStep as Step);
                 window.scrollTo(0, 0);
               }}
               className="flex-1 rounded-lg bg-primary-600 px-4 py-3 font-medium text-white transition-all hover:bg-primary-700 active:scale-[0.98]"
@@ -316,8 +422,8 @@ export default function OnboardingPage({
         </div>
       )}
 
-      {/* Step 2: Confirmation */}
-      {step === 2 && (
+      {/* Confirmation step */}
+      {step === confirmStep && (
         <div className="animate-slide-up rounded-card border-t-4 border-primary-500 bg-white p-6 shadow-card">
           <h2 className="mb-1 text-xl font-semibold text-gray-900">Confirmación</h2>
           <p className="mb-6 text-sm text-gray-500">Revisa que toda la información sea correcta</p>
@@ -336,7 +442,7 @@ export default function OnboardingPage({
 
           <div className="mt-6 flex gap-3">
             <button
-              onClick={() => { setStep(1); window.scrollTo(0, 0); }}
+              onClick={() => { setStep(docsStep as Step); window.scrollTo(0, 0); }}
               className="flex-1 rounded-lg border border-gray-200 px-4 py-3 font-medium text-gray-700 transition-colors hover:bg-gray-50"
             >
               Anterior
