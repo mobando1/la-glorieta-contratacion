@@ -79,20 +79,28 @@ export async function runEvaluation(
   } catch (error) {
     logger.error("Evaluation failed", { candidateId, error: String(error) });
 
-    // Revert status so candidate can be retried
-    await prisma.candidate.update({
-      where: { id: candidateId },
-      data: { status: "PENDIENTE_EVALUACION" },
-    });
+    try {
+      // Revert status so candidate can be retried
+      await prisma.candidate.update({
+        where: { id: candidateId },
+        data: { status: "PENDIENTE_EVALUACION" },
+      });
 
-    await prisma.auditLog.create({
-      data: {
-        action: "ai_evaluation_failed",
-        entityType: "Candidate",
-        entityId: candidateId,
-        details: String(error),
-      },
-    });
+      await prisma.auditLog.create({
+        data: {
+          action: "ai_evaluation_failed",
+          entityType: "Candidate",
+          entityId: candidateId,
+          details: String(error),
+        },
+      });
+    } catch (revertError) {
+      logger.error("Failed to revert status after evaluation failure", {
+        candidateId,
+        originalError: String(error),
+        revertError: String(revertError),
+      });
+    }
   }
 }
 
@@ -225,18 +233,26 @@ export async function runPersonalInterviewEvaluation(
   } catch (error) {
     logger.error("Personal interview evaluation failed", { candidateId, error: String(error) });
 
-    await prisma.candidate.update({
-      where: { id: candidateId },
-      data: { status: "ENTREVISTA_REALIZADA" },
-    });
+    try {
+      await prisma.candidate.update({
+        where: { id: candidateId },
+        data: { status: "ENTREVISTA_REALIZADA" },
+      });
 
-    await prisma.auditLog.create({
-      data: {
-        action: "personal_interview_evaluation_failed",
-        entityType: "Candidate",
-        entityId: candidateId,
-        details: String(error),
-      },
-    });
+      await prisma.auditLog.create({
+        data: {
+          action: "personal_interview_evaluation_failed",
+          entityType: "Candidate",
+          entityId: candidateId,
+          details: String(error),
+        },
+      });
+    } catch (revertError) {
+      logger.error("Failed to revert status after personal interview evaluation failure", {
+        candidateId,
+        originalError: String(error),
+        revertError: String(revertError),
+      });
+    }
   }
 }

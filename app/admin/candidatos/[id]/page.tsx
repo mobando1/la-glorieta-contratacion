@@ -21,6 +21,7 @@ interface CandidateDetail {
   positionApplied: string;
   status: string;
   createdAt: string;
+  updatedAt: string;
   notesAdmin: string | null;
   photoPath: string | null;
   restaurant: { id: string; name: string } | null;
@@ -115,6 +116,11 @@ export default function CandidatoDetailPage({
   const [uploadingPhoto, setUploadingPhoto] = useState(false);
   const [photoKey, setPhotoKey] = useState(0); // force re-render after upload
 
+  // Retry personal evaluation
+  const [retryingPersonal, setRetryingPersonal] = useState(false);
+  const [showSkipForm, setShowSkipForm] = useState(false);
+  const [skipNotes, setSkipNotes] = useState("");
+
   // Delete candidate
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [deleteConfirmName, setDeleteConfirmName] = useState("");
@@ -192,6 +198,31 @@ export default function CandidatoDetailPage({
       setTimeout(() => { fetchData(); setRetrying(false); }, 3000);
     } catch {
       setRetrying(false);
+    }
+  }
+
+  async function handleRetryPersonalEvaluation(action: "retry" | "skip") {
+    setRetryingPersonal(true);
+    try {
+      const res = await fetch(`/api/admin/candidates/${id}/retry-personal-evaluation`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action, skipNotes: action === "skip" ? skipNotes : undefined }),
+      });
+      if (res.ok) {
+        const msg = action === "retry" ? "Reintentando evaluación..." : "Evaluación omitida. Puede tomar decisión final.";
+        showToast(msg, "success");
+        setShowSkipForm(false);
+        setSkipNotes("");
+        setTimeout(() => { fetchData(); setRetryingPersonal(false); }, action === "retry" ? 3000 : 500);
+      } else {
+        const data = await res.json();
+        showToast(data.error || "Error al procesar", "error");
+        setRetryingPersonal(false);
+      }
+    } catch {
+      showToast("Error de conexión", "error");
+      setRetryingPersonal(false);
     }
   }
 
@@ -820,8 +851,8 @@ export default function CandidatoDetailPage({
               </div>
             )}
 
-            {/* Processing states */}
-            {(candidate.status === "ENTREVISTA_REALIZADA" || candidate.status === "EVALUANDO_ENTREVISTA") && (
+            {/* Processing: just submitted */}
+            {candidate.status === "ENTREVISTA_REALIZADA" && (
               <div className="rounded-card bg-white p-8 text-center shadow-card">
                 <div className="mx-auto mb-3 h-10 w-10 animate-spin rounded-full border-4 border-primary-200 border-t-primary-600" />
                 <p className="text-gray-600">Evaluando entrevista personal...</p>
@@ -833,6 +864,90 @@ export default function CandidatoDetailPage({
                 </button>
               </div>
             )}
+
+            {/* Processing: may be stuck */}
+            {candidate.status === "EVALUANDO_ENTREVISTA" && (() => {
+              const minutesElapsed = (Date.now() - new Date(candidate.updatedAt).getTime()) / 60000;
+              const isStuck = minutesElapsed >= 2;
+
+              if (!isStuck) {
+                return (
+                  <div className="rounded-card bg-white p-8 text-center shadow-card">
+                    <div className="mx-auto mb-3 h-10 w-10 animate-spin rounded-full border-4 border-primary-200 border-t-primary-600" />
+                    <p className="text-gray-600">Evaluando entrevista personal...</p>
+                    <button
+                      onClick={fetchData}
+                      className="mt-3 text-sm text-primary-600 hover:underline"
+                    >
+                      Actualizar
+                    </button>
+                  </div>
+                );
+              }
+
+              return (
+                <div className="rounded-card bg-white p-6 shadow-card">
+                  <div className="mb-4 flex items-center gap-3 rounded-lg bg-amber-50 p-4">
+                    <svg className="h-6 w-6 flex-shrink-0 text-amber-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 16.5c-.77.833.192 2.5 1.732 2.5z" />
+                    </svg>
+                    <div>
+                      <p className="font-medium text-amber-800">La evaluación parece haberse detenido</p>
+                      <p className="mt-1 text-sm text-amber-600">
+                        Han pasado {Math.floor(minutesElapsed)} minuto{Math.floor(minutesElapsed) !== 1 ? "s" : ""} sin respuesta de la IA.
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="flex flex-col gap-3 sm:flex-row">
+                    <button
+                      onClick={() => handleRetryPersonalEvaluation("retry")}
+                      disabled={retryingPersonal}
+                      className="flex-1 rounded-lg bg-primary-600 px-4 py-3 font-medium text-white transition-colors hover:bg-primary-700 disabled:opacity-50"
+                    >
+                      {retryingPersonal ? "Reintentando..." : "Reintentar evaluación"}
+                    </button>
+                    <button
+                      onClick={() => setShowSkipForm(true)}
+                      disabled={retryingPersonal}
+                      className="flex-1 rounded-lg border border-gray-300 px-4 py-3 font-medium text-gray-700 transition-colors hover:bg-gray-50 disabled:opacity-50"
+                    >
+                      Omitir evaluación IA
+                    </button>
+                  </div>
+
+                  {showSkipForm && (
+                    <div className="mt-4 rounded-lg border border-gray-200 p-4">
+                      <p className="mb-2 text-sm font-medium text-gray-700">
+                        Se omitirá la evaluación IA y podrá tomar la decisión final manualmente.
+                      </p>
+                      <textarea
+                        value={skipNotes}
+                        onChange={(e) => setSkipNotes(e.target.value)}
+                        rows={2}
+                        className="mb-3 w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500"
+                        placeholder="Razón para omitir (opcional)..."
+                      />
+                      <div className="flex gap-2">
+                        <button
+                          onClick={() => handleRetryPersonalEvaluation("skip")}
+                          disabled={retryingPersonal}
+                          className="rounded-lg bg-amber-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-amber-700 disabled:opacity-50"
+                        >
+                          {retryingPersonal ? "Procesando..." : "Confirmar omisión"}
+                        </button>
+                        <button
+                          onClick={() => { setShowSkipForm(false); setSkipNotes(""); }}
+                          className="rounded-lg border border-gray-200 px-4 py-2 text-sm text-gray-600 hover:bg-gray-50"
+                        >
+                          Cancelar
+                        </button>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              );
+            })()}
 
             {/* Results: show personal eval + combined score */}
             {personalEvaluation && personalInterview?.isComplete && (
