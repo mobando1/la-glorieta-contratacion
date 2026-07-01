@@ -34,6 +34,10 @@ export async function GET(
         decisions: {
           orderBy: { createdAt: "desc" },
         },
+        contacts: {
+          orderBy: { createdAt: "desc" },
+          take: 20,
+        },
       },
     });
 
@@ -88,7 +92,9 @@ export async function GET(
         personalInterviews: undefined,
         evaluations: undefined,
         decisions: undefined,
+        contacts: undefined,
       },
+      contacts: candidate.contacts,
       interview: interview
         ? {
             ...interview,
@@ -173,6 +179,7 @@ export async function DELETE(
       await tx.adminDecision.deleteMany({ where: { candidateId: id } });
       await tx.personalInterview.deleteMany({ where: { candidateId: id } });
       await tx.applicationInterview.deleteMany({ where: { candidateId: id } });
+      await tx.candidateContact.deleteMany({ where: { candidateId: id } });
       await tx.auditLog.deleteMany({ where: { entityId: id, entityType: "Candidate" } });
 
       // Delete candidate

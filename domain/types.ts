@@ -216,3 +216,32 @@ export interface PersonalInterviewAnswers {
   disponibilidadCapacitacion: string;
   preguntaTecnica?: string;
 }
+
+// Contact tracking (CRM)
+export const CONTACT_METHODS = ["WHATSAPP", "LLAMADA", "EMAIL", "PRESENCIAL"] as const;
+export type ContactMethod = (typeof CONTACT_METHODS)[number];
+
+export const CONTACT_METHOD_LABELS: Record<ContactMethod, string> = {
+  WHATSAPP: "WhatsApp",
+  LLAMADA: "Llamada",
+  EMAIL: "Correo",
+  PRESENCIAL: "Presencial",
+};
+
+export const CONTACT_RESULTS = [
+  "CONTACTADO", "SIN_RESPUESTA", "RESPONDIO",
+  "CITA_AGENDADA", "CONFIRMO_ASISTENCIA",
+  "ASISTIO", "NO_ASISTIO", "RECHAZADO",
+] as const;
+export type ContactResult = (typeof CONTACT_RESULTS)[number];
+
+export const CONTACT_RESULT_LABELS: Record<ContactResult, string> = {
+  CONTACTADO: "Contactado",
+  SIN_RESPUESTA: "Sin Respuesta",
+  RESPONDIO: "Respondió",
+  CITA_AGENDADA: "Cita Agendada",
+  CONFIRMO_ASISTENCIA: "Confirmó Asistencia",
+  ASISTIO: "Asistió",
+  NO_ASISTIO: "No Asistió",
+  RECHAZADO: "Rechazó Oferta",
+};

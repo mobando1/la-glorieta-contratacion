@@ -3,8 +3,8 @@
 import { useState, useEffect, useCallback, Suspense } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
-import { POSITIONS, POSITION_LABELS, ID_DOCUMENT_TYPES, ID_DOCUMENT_LABELS } from "@/domain/types";
-import type { Position, IdDocumentType } from "@/domain/types";
+import { POSITIONS, POSITION_LABELS, ID_DOCUMENT_TYPES, ID_DOCUMENT_LABELS, CONTACT_RESULT_LABELS } from "@/domain/types";
+import type { Position, IdDocumentType, ContactResult } from "@/domain/types";
 import { StatusBadge, ScoreBadge } from "@/components/ui/badges";
 import { StatCard } from "@/components/ui/stat-card";
 
@@ -24,6 +24,13 @@ interface CandidateRow {
   restaurantName: string | null;
   restaurantId: string | null;
   hasPhoto: boolean;
+  birthDate: string | null;
+  latestContact: {
+    contactMethod: string;
+    contactResult: string;
+    contactedByName: string;
+    createdAt: string;
+  } | null;
 }
 
 interface RestaurantOption {
@@ -428,7 +435,7 @@ function CandidatosContent() {
             <tr>
               <th scope="col" className="px-4 py-3">Nombre</th>
               <th scope="col" className="px-4 py-3">Cargo</th>
-              <th scope="col" className="px-4 py-3">Restaurante</th>
+              <th scope="col" className="px-4 py-3">Edad</th>
               <th scope="col" className="px-4 py-3">Score</th>
               <th scope="col" className="px-4 py-3">Estado</th>
               <th scope="col" className="px-4 py-3">Alertas</th>
@@ -500,7 +507,9 @@ function CandidatosContent() {
                     {POSITION_LABELS[c.positionApplied as Position] || c.positionApplied}
                   </td>
                   <td className="px-4 py-3 text-gray-600">
-                    {c.restaurantName || <span className="text-gray-400">&mdash;</span>}
+                    {c.birthDate
+                      ? `${Math.floor((Date.now() - new Date(c.birthDate).getTime()) / (365.25 * 24 * 60 * 60 * 1000))}`
+                      : <span className="text-gray-400">&mdash;</span>}
                   </td>
                   <td className="px-4 py-3">
                     {c.totalScore !== null ? (
@@ -511,6 +520,11 @@ function CandidatosContent() {
                   </td>
                   <td className="px-4 py-3">
                     <StatusBadge status={c.status} />
+                    {c.latestContact && (
+                      <span className="mt-1 block text-[10px] text-gray-400">
+                        {CONTACT_RESULT_LABELS[c.latestContact.contactResult as ContactResult] || c.latestContact.contactResult}
+                      </span>
+                    )}
                   </td>
                   <td className="px-4 py-3">
                     <div className="flex gap-1">

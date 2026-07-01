@@ -3,8 +3,8 @@
 import { useState, useEffect, use } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { POSITION_LABELS, STATUS_LABELS, MARITAL_STATUS_LABELS } from "@/domain/types";
-import type { MaritalStatus } from "@/domain/types";
+import { POSITION_LABELS, STATUS_LABELS, MARITAL_STATUS_LABELS, CONTACT_METHODS, CONTACT_RESULTS, CONTACT_METHOD_LABELS, CONTACT_RESULT_LABELS } from "@/domain/types";
+import type { MaritalStatus, ContactMethod, ContactResult } from "@/domain/types";
 import { useToast } from "@/components/ui/toast";
 import { StatusBadge } from "@/components/ui/badges";
 import { PersonalInterviewForm } from "@/components/admin/personal-interview-form";
@@ -18,12 +18,23 @@ interface CandidateDetail {
   fullName: string;
   phone: string;
   email: string | null;
+  birthDate: string | null;
   positionApplied: string;
   status: string;
   createdAt: string;
   notesAdmin: string | null;
   photoPath: string | null;
   restaurant: { id: string; name: string } | null;
+}
+
+interface ContactDetail {
+  id: string;
+  contactMethod: string;
+  contactResult: string;
+  notes: string | null;
+  contactedBy: string;
+  contactedByName: string;
+  createdAt: string;
 }
 
 interface EvaluationDetail {
@@ -120,6 +131,14 @@ export default function CandidatoDetailPage({
   const [deleteConfirmName, setDeleteConfirmName] = useState("");
   const [deleting, setDeleting] = useState(false);
 
+  // Contact tracking
+  const [contacts, setContacts] = useState<ContactDetail[]>([]);
+  const [showContactForm, setShowContactForm] = useState(false);
+  const [contactMethod, setContactMethod] = useState<ContactMethod>("WHATSAPP");
+  const [contactResult, setContactResult] = useState<ContactResult>("CONTACTADO");
+  const [contactNotes, setContactNotes] = useState("");
+  const [savingContact, setSavingContact] = useState(false);
+
   useEffect(() => {
     fetchData();
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -142,6 +161,7 @@ export default function CandidatoDetailPage({
       setDecisions(data.decisions);
       setDuplicates(data.duplicates);
       setAuditLogs(data.auditLogs || []);
+      setContacts(data.contacts || []);
     } catch {
       setError("No se pudo cargar el candidato. Verifica tu conexión e intenta de nuevo.");
     } finally {
@@ -375,6 +395,54 @@ export default function CandidatoDetailPage({
     } finally {
       setDeleting(false);
     }
+  }
+
+  async function handleSaveContact() {
+    setSavingContact(true);
+    try {
+      const res = await fetch(`/api/admin/candidates/${id}/contacts`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ contactMethod, contactResult, notes: contactNotes || null }),
+      });
+      if (res.ok) {
+        showToast("Contacto registrado", "success");
+        setShowContactForm(false);
+        setContactNotes("");
+        setContactResult("CONTACTADO");
+        await fetchData();
+      } else {
+        const data = await res.json();
+        showToast(data.error || "Error al registrar contacto", "error");
+      }
+    } catch {
+      showToast("Error de conexión", "error");
+    } finally {
+      setSavingContact(false);
+    }
+  }
+
+  async function handleUpdateContactResult(contactId: string, newResult: ContactResult) {
+    try {
+      const res = await fetch(`/api/admin/candidates/${id}/contacts`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ contactId, contactResult: newResult }),
+      });
+      if (res.ok) {
+        showToast("Resultado actualizado", "success");
+        await fetchData();
+      } else {
+        const data = await res.json();
+        showToast(data.error || "Error al actualizar", "error");
+      }
+    } catch {
+      showToast("Error de conexión", "error");
+    }
+  }
+
+  function calculateAge(birthDate: string): number {
+    return Math.floor((Date.now() - new Date(birthDate).getTime()) / (365.25 * 24 * 60 * 60 * 1000));
   }
 
   if (loading) {
@@ -612,6 +680,8 @@ export default function CandidatoDetailPage({
                         status={candidate.status as CandidateStatus}
                         position={candidate.positionApplied as Position}
                         restaurantName={candidate.restaurant?.name}
+                        candidateId={id}
+                        onContactLogged={fetchData}
                       />
                     </dd>
                   </div>
@@ -625,6 +695,12 @@ export default function CandidatoDetailPage({
                     <dt className="text-gray-500">Fecha</dt>
                     <dd>{new Date(candidate.createdAt).toLocaleDateString("es-CO")}</dd>
                   </div>
+                  {candidate.birthDate && (
+                    <div className="flex justify-between">
+                      <dt className="text-gray-500">Edad</dt>
+                      <dd className="font-medium">{calculateAge(candidate.birthDate)} años</dd>
+                    </div>
+                  )}
                 </dl>
 
                 {duplicates.length > 0 && (
@@ -718,6 +794,123 @@ export default function CandidatoDetailPage({
                 </details>
               </div>
             )}
+
+            {/* Seguimiento de Contacto */}
+            <div className="rounded-card bg-white p-5 shadow-card">
+              <div className="mb-4 flex items-center justify-between">
+                <h2 className="text-sm font-semibold uppercase text-gray-500">Seguimiento de Contacto</h2>
+                <button
+                  type="button"
+                  onClick={() => setShowContactForm(!showContactForm)}
+                  className="rounded-lg bg-primary-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-primary-700"
+                >
+                  {showContactForm ? "Cancelar" : "+ Registrar contacto"}
+                </button>
+              </div>
+
+              {showContactForm && (
+                <div className="mb-4 rounded-lg border border-gray-200 bg-gray-50 p-4 space-y-3">
+                  <div>
+                    <label className="mb-1 block text-xs font-medium text-gray-600">Método</label>
+                    <div className="flex flex-wrap gap-2">
+                      {CONTACT_METHODS.map((m) => (
+                        <button
+                          key={m}
+                          type="button"
+                          onClick={() => setContactMethod(m)}
+                          className={`rounded-full px-3 py-1 text-xs font-medium transition-colors ${
+                            contactMethod === m
+                              ? m === "WHATSAPP" ? "bg-green-600 text-white" : "bg-primary-600 text-white"
+                              : "bg-white text-gray-600 border border-gray-300 hover:bg-gray-100"
+                          }`}
+                        >
+                          {CONTACT_METHOD_LABELS[m]}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                  <div>
+                    <label className="mb-1 block text-xs font-medium text-gray-600">Resultado</label>
+                    <select
+                      value={contactResult}
+                      onChange={(e) => setContactResult(e.target.value as ContactResult)}
+                      className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm"
+                    >
+                      {CONTACT_RESULTS.map((r) => (
+                        <option key={r} value={r}>{CONTACT_RESULT_LABELS[r]}</option>
+                      ))}
+                    </select>
+                  </div>
+                  <div>
+                    <label className="mb-1 block text-xs font-medium text-gray-600">Notas (opcional)</label>
+                    <textarea
+                      value={contactNotes}
+                      onChange={(e) => setContactNotes(e.target.value)}
+                      rows={2}
+                      className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm"
+                      placeholder="Ej: Dice que puede venir el jueves..."
+                    />
+                  </div>
+                  <button
+                    type="button"
+                    onClick={handleSaveContact}
+                    disabled={savingContact}
+                    className="rounded-lg bg-primary-600 px-4 py-2 text-sm font-medium text-white hover:bg-primary-700 disabled:opacity-50"
+                  >
+                    {savingContact ? "Guardando..." : "Guardar contacto"}
+                  </button>
+                </div>
+              )}
+
+              {contacts.length === 0 ? (
+                <p className="text-sm text-gray-400">No se ha registrado ningún contacto aún.</p>
+              ) : (
+                <div className="space-y-3">
+                  {contacts.map((c) => {
+                    const methodColors: Record<string, string> = {
+                      WHATSAPP: "bg-green-100 text-green-700",
+                      LLAMADA: "bg-blue-100 text-blue-700",
+                      EMAIL: "bg-gray-100 text-gray-700",
+                      PRESENCIAL: "bg-purple-100 text-purple-700",
+                    };
+                    const resultColors: Record<string, string> = {
+                      CONTACTADO: "bg-blue-100 text-blue-700",
+                      SIN_RESPUESTA: "bg-gray-100 text-gray-500",
+                      RESPONDIO: "bg-green-100 text-green-700",
+                      CITA_AGENDADA: "bg-yellow-100 text-yellow-700",
+                      CONFIRMO_ASISTENCIA: "bg-emerald-100 text-emerald-700",
+                      ASISTIO: "bg-green-200 text-green-800",
+                      NO_ASISTIO: "bg-red-100 text-red-700",
+                      RECHAZADO: "bg-red-200 text-red-800",
+                    };
+                    return (
+                      <div key={c.id} className="rounded-lg border border-gray-100 p-3">
+                        <div className="flex flex-wrap items-center gap-2">
+                          <span className={`rounded-full px-2 py-0.5 text-xs font-medium ${methodColors[c.contactMethod] || "bg-gray-100 text-gray-600"}`}>
+                            {CONTACT_METHOD_LABELS[c.contactMethod as ContactMethod] || c.contactMethod}
+                          </span>
+                          <select
+                            value={c.contactResult}
+                            onChange={(e) => handleUpdateContactResult(c.id, e.target.value as ContactResult)}
+                            className={`rounded-full border-0 px-2 py-0.5 text-xs font-medium cursor-pointer ${resultColors[c.contactResult] || "bg-gray-100 text-gray-600"}`}
+                          >
+                            {CONTACT_RESULTS.map((r) => (
+                              <option key={r} value={r}>{CONTACT_RESULT_LABELS[r]}</option>
+                            ))}
+                          </select>
+                          <span className="ml-auto text-xs text-gray-400">
+                            {c.contactedByName} &middot; {new Date(c.createdAt).toLocaleString("es-CO")}
+                          </span>
+                        </div>
+                        {c.notes && (
+                          <p className="mt-1 text-xs text-gray-500">{c.notes}</p>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
 
             {/* Timeline */}
             {auditLogs.length > 0 && (

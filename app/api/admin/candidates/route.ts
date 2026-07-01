@@ -190,6 +190,10 @@ export async function GET(request: NextRequest) {
             orderBy: { createdAt: "desc" },
             take: 1,
           },
+          contacts: {
+            orderBy: { createdAt: "desc" },
+            take: 1,
+          },
         },
         orderBy,
         skip,
@@ -204,6 +208,8 @@ export async function GET(request: NextRequest) {
       const decision = c.decisions[0] || null;
       const redFlags = evaluation ? safeJsonParse<string[]>(evaluation.redFlags, []) : [];
 
+      const latestContact = c.contacts[0] || null;
+
       return {
         id: c.id,
         fullName: c.fullName,
@@ -212,6 +218,7 @@ export async function GET(request: NextRequest) {
         status: c.status,
         restaurantName: c.restaurant?.name ?? null,
         restaurantId: c.restaurantId,
+        birthDate: c.birthDate,
         createdAt: c.createdAt,
         totalScore: evaluation?.totalScore ?? null,
         attitudeScore: evaluation?.attitudeScore ?? null,
@@ -226,6 +233,12 @@ export async function GET(request: NextRequest) {
         duplicateCount: duplicatePhoneSet.has(c.phone)
           ? (duplicatePhones.find((d) => d.phone === c.phone)?._count.phone ?? 1) - 1
           : 0,
+        latestContact: latestContact ? {
+          contactMethod: latestContact.contactMethod,
+          contactResult: latestContact.contactResult,
+          contactedByName: latestContact.contactedByName,
+          createdAt: latestContact.createdAt,
+        } : null,
       };
     });
 

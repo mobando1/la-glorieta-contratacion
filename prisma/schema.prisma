@@ -44,6 +44,7 @@ model Candidate {
   personalInterviews  PersonalInterview[]
   evaluations         AIEvaluation[]
   decisions           AdminDecision[]
+  contacts            CandidateContact[]
   employee            Employee?
 
   @@index([phone])
@@ -116,6 +117,23 @@ model AdminDecision {
   createdAt      DateTime @default(now())
 
   candidate Candidate @relation(fields: [candidateId], references: [id])
+}
+
+model CandidateContact {
+  id              String   @id @default(uuid())
+  candidateId     String
+  contactMethod   String
+  contactResult   String   @default("CONTACTADO")
+  notes           String?
+  contactedBy     String
+  contactedByName String
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  candidate Candidate @relation(fields: [candidateId], references: [id])
+
+  @@index([candidateId])
+  @@index([createdAt])
 }
 
 model AdminUser {
