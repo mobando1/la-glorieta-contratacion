@@ -139,10 +139,10 @@ export function PhotoUpload({ onUploaded, currentToken }: PhotoUploadProps) {
   }
 
   return (
-    <div className="mt-6 rounded-lg border border-gray-200 bg-gray-50 p-4">
-      <label className="mb-3 block text-sm font-medium text-gray-700">
-        Foto de identificacion <span className="text-amber-500">(Recomendada)</span>
-      </label>
+    <div className="mt-6 rounded-lg border border-line bg-canvas-deep p-4">
+      <p id="photo-caption" className="mb-3 block text-sm font-medium text-ink">
+        Foto de identificación <span className="text-accent-600">(Recomendada)</span>
+      </p>
 
       <div className="flex flex-col items-center gap-3 sm:flex-row sm:items-start">
         {/* Photo area */}
@@ -150,6 +150,7 @@ export function PhotoUpload({ onUploaded, currentToken }: PhotoUploadProps) {
           role="button"
           tabIndex={0}
           aria-label="Subir foto de identificación"
+          aria-describedby="photo-caption"
           onClick={() => !uploading && inputRef.current?.click()}
           onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); !uploading && inputRef.current?.click(); } }}
           className={`relative flex h-24 w-24 shrink-0 cursor-pointer items-center justify-center overflow-hidden rounded-full border-2 border-dashed transition-colors ${
@@ -157,7 +158,7 @@ export function PhotoUpload({ onUploaded, currentToken }: PhotoUploadProps) {
               ? "border-primary-300 bg-primary-50"
               : preview
                 ? "border-primary-300 bg-primary-50"
-                : "border-gray-300 bg-white hover:border-gray-400"
+                : "border-line-strong bg-surface hover:border-primary-400"
           }`}
         >
           <input
@@ -174,7 +175,7 @@ export function PhotoUpload({ onUploaded, currentToken }: PhotoUploadProps) {
           ) : preview ? (
             <img
               src={preview}
-              alt="Preview"
+              alt="Vista previa de tu foto de identificación"
               className="h-full w-full object-cover"
             />
           ) : uploaded ? (
@@ -183,7 +184,7 @@ export function PhotoUpload({ onUploaded, currentToken }: PhotoUploadProps) {
             </svg>
           ) : (
             <svg
-              className="h-8 w-8 text-gray-400"
+              className="h-8 w-8 text-ink-mute"
               fill="none"
               viewBox="0 0 24 24"
               strokeWidth={1.5}
@@ -211,30 +212,30 @@ export function PhotoUpload({ onUploaded, currentToken }: PhotoUploadProps) {
               <button
                 type="button"
                 onClick={handleRemove}
-                className="text-sm text-gray-500 hover:text-gray-700"
+                className="text-sm text-ink-mute hover:text-ink"
               >
                 Eliminar foto
               </button>
             </div>
           ) : (
             <div>
-              <p className="text-sm text-gray-600">
+              <p className="text-sm text-ink-soft">
                 Toca para {preview ? "cambiar" : "subir"} tu foto
               </p>
-              <p className="mt-0.5 text-xs text-gray-400">JPG, PNG u otra imagen (max. 10MB)</p>
+              <p className="mt-0.5 text-xs text-ink-mute">JPG, PNG u otra imagen (max. 10MB)</p>
             </div>
           )}
         </div>
       </div>
 
-      {error && <p className="mt-2 text-sm text-red-600">{error}</p>}
+      {error && <p className="mt-2 text-sm text-accent-700">{error}</p>}
 
       {/* Legal disclaimer */}
-      <div className="mt-3 rounded border border-amber-200 bg-amber-50 p-2.5">
-        <p className="text-xs leading-relaxed text-amber-800">
-          <span className="font-semibold">Aviso:</span> Puedes enviar tu aplicacion sin foto, pero incluirla mejora tus posibilidades.
-          Sera utilizada unicamente con fines de identificacion interna durante el proceso de seleccion.
-          Al subir tu foto, autorizas su uso exclusivo para este proposito. No sera compartida con terceros.
+      <div className="mt-3 rounded-field border border-accent-200 bg-accent-100 p-3">
+        <p className="text-xs leading-relaxed text-accent-700">
+          <span className="font-semibold">Aviso:</span> Puedes enviar tu aplicación sin foto, pero incluirla mejora tus posibilidades.
+          Será utilizada únicamente con fines de identificación interna durante el proceso de selección.
+          Al subir tu foto, autorizas su uso exclusivo para este propósito. No será compartida con terceros.
         </p>
       </div>
     </div>

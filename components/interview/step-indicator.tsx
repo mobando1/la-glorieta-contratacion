@@ -30,7 +30,7 @@ export function StepIndicator({
                       ? "bg-primary-600 text-white"
                       : isCurrent
                         ? "bg-primary-100 text-primary-700 ring-2 ring-primary-600 ring-offset-2"
-                        : "bg-gray-200 text-gray-500"
+                        : "bg-line-strong text-ink-mute"
                   }`}
                 >
                   {isCompleted ? (
@@ -43,7 +43,7 @@ export function StepIndicator({
                 </div>
                 <span
                   className={`mt-1.5 text-[10px] font-medium ${
-                    isCurrent ? "text-primary-700" : isCompleted ? "text-primary-600" : "text-gray-400"
+                    isCurrent ? "text-primary-700" : isCompleted ? "text-primary-600" : "text-ink-mute"
                   }`}
                 >
                   {step.shortTitle}
@@ -54,7 +54,7 @@ export function StepIndicator({
                 <div className="mx-1 h-0.5 flex-1">
                   <div
                     className={`h-full rounded-full transition-colors ${
-                      i < currentStep ? "bg-primary-600" : "bg-gray-200"
+                      i < currentStep ? "bg-primary-600" : "bg-line-strong"
                     }`}
                   />
                 </div>
@@ -69,13 +69,13 @@ export function StepIndicator({
         <span className="text-sm font-medium text-primary-700">
           Paso {currentStep + 1} de {steps.length}
         </span>
-        <span className="text-sm text-gray-500">
+        <span className="text-sm text-ink-mute">
           {steps[currentStep]?.title}
         </span>
       </div>
 
       {/* Mobile: progress bar */}
-      <div className="mt-2 h-1.5 w-full overflow-hidden rounded-full bg-gray-200 sm:hidden">
+      <div className="mt-2 h-1.5 w-full overflow-hidden rounded-full bg-line-strong sm:hidden">
         <div
           className="h-full rounded-full bg-primary-600 transition-all duration-300"
           style={{ width: `${((currentStep + 1) / steps.length) * 100}%` }}

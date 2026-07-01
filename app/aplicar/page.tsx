@@ -5,6 +5,8 @@ import { getInterviewSteps } from "@/domain/interview-questions";
 import { useToast } from "@/components/ui/toast";
 import { StepIndicator } from "@/components/interview/step-indicator";
 import { PhotoUpload } from "@/components/interview/photo-upload";
+import { BrandBackdrop } from "@/components/brand/brand-backdrop";
+import { LogoPlaque } from "@/components/brand/logo-plaque";
 import type { Question } from "@/domain/interview-questions";
 import type { Position } from "@/domain/types";
 
@@ -94,33 +96,49 @@ const STEP_SHORT_TITLES = ["Inicio", "Datos", "Disp.", "Motiv.", "Resp.", "Escen
 
 export default function AplicarPage() {
   const { showToast } = useToast();
-  const [currentStep, setCurrentStep] = useState(() => {
-    if (typeof window === "undefined") return 0;
-    const draft = loadDraft();
-    return draft ? draft.currentStep : 0;
-  });
-  const [formData, setFormData] = useState<FormData>(() => {
-    if (typeof window === "undefined") return INITIAL_DATA;
-    const draft = loadDraft();
-    return draft ? { ...INITIAL_DATA, ...draft.formData } : INITIAL_DATA;
-  });
-  const [restoredDraft, setRestoredDraft] = useState(() => {
-    if (typeof window === "undefined") return false;
-    return loadDraft() !== null;
-  });
+  // Start from server-rendered defaults; hydrate any saved draft after mount to
+  // avoid an SSR/CSR hydration mismatch.
+  const [currentStep, setCurrentStep] = useState(0);
+  const [formData, setFormData] = useState<FormData>(INITIAL_DATA);
+  const [restoredDraft, setRestoredDraft] = useState(false);
+  const [hydrated, setHydrated] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [submitting, setSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
   const startTimeRef = useRef(Date.now());
+  const headingRef = useRef<HTMLHeadingElement>(null);
+  const isFirstStepRender = useRef(true);
 
-  // Auto-save form progress to localStorage
+  // Restore any saved draft once, after mount.
   useEffect(() => {
-    if (submitted) return;
+    const draft = loadDraft();
+    if (draft) {
+      setFormData({ ...INITIAL_DATA, ...draft.formData });
+      setCurrentStep(draft.currentStep);
+      setRestoredDraft(true);
+    }
+    setHydrated(true);
+  }, []);
+
+  // Auto-save form progress to localStorage (only after the draft has hydrated,
+  // so we never clobber a saved draft with the initial defaults).
+  useEffect(() => {
+    if (!hydrated || submitted) return;
     const timer = setTimeout(() => {
       saveDraft(formData, currentStep);
     }, 500);
     return () => clearTimeout(timer);
-  }, [formData, currentStep, submitted]);
+  }, [formData, currentStep, submitted, hydrated]);
+
+  // Move focus to the new step's heading so keyboard / screen-reader users land
+  // on the freshly rendered step instead of a now-unmounted button.
+  useEffect(() => {
+    if (isFirstStepRender.current) {
+      isFirstStepRender.current = false;
+      return;
+    }
+    headingRef.current?.focus({ preventScroll: true });
+  }, [currentStep]);
 
   const position = formData.basic.positionApplied as Position | "";
   const steps = getInterviewSteps(position ? (position as Position) : undefined);
@@ -283,43 +301,74 @@ export default function AplicarPage() {
 
   if (submitted) {
     return (
-      <main className="relative flex min-h-screen items-center justify-center overflow-hidden px-4">
-        <div className="absolute inset-0 bg-gradient-to-br from-primary-900 via-primary-800 to-primary-950" />
-        <div className="relative z-10 w-full max-w-md animate-slide-up rounded-card bg-white p-8 text-center shadow-elevated">
-          {/* Animated checkmark */}
-          <div className="mx-auto mb-4 flex h-20 w-20 items-center justify-center rounded-full bg-primary-100">
-            <svg className="h-10 w-10 text-primary-600" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" d="m4.5 12.75 6 6 9-13.5" />
-            </svg>
+      <main className="relative flex min-h-[100dvh] items-center justify-center px-5 py-12 text-cream">
+        <BrandBackdrop variant="dark" />
+        <div className="relative z-10 w-full max-w-md animate-rise-in text-center">
+          {/* Drawing checkmark */}
+          <div className="relative mx-auto mb-7 flex h-20 w-20 items-center justify-center">
+            <div
+              aria-hidden="true"
+              className="animate-glow-pulse absolute inset-0 rounded-full"
+              style={{
+                background:
+                  "radial-gradient(circle, color-mix(in oklch, var(--color-accent-400) 45%, transparent), transparent 70%)",
+                filter: "blur(12px)",
+              }}
+            />
+            <div className="relative flex h-20 w-20 items-center justify-center rounded-full bg-cream shadow-elevated">
+              <svg className="h-10 w-10 text-primary-700" fill="none" viewBox="0 0 24 24" strokeWidth={2.6} stroke="currentColor">
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  d="m4.5 12.75 6 6 9-13.5"
+                  pathLength={1}
+                  strokeDasharray={1}
+                  className="animate-draw"
+                  style={{ ["--draw-len" as string]: 1, animationDelay: "300ms" }}
+                />
+              </svg>
+            </div>
           </div>
-          <h1 className="mb-2 text-2xl font-bold text-gray-900">
+
+          <p className="eyebrow text-accent-300">Solicitud recibida</p>
+          <h1 className="mt-3 font-serif text-3xl font-semibold text-cream sm:text-4xl">
             ¡Gracias por aplicar!
           </h1>
-          <p className="text-gray-600">
-            Tu entrevista ha sido enviada exitosamente. Nos pondremos en contacto contigo pronto.
+          <p className="mx-auto mt-4 max-w-sm text-pretty text-[15px] leading-relaxed text-cream-soft">
+            Recibimos tu entrevista y la revisaremos con cuidado. Nos pondremos en contacto contigo
+            pronto.
           </p>
-          <p className="mt-6 text-sm text-gray-400">
-            La Glorieta | Salom&eacute; Restaurante | Salom&eacute; Helader&iacute;a &mdash; Guaduas, Cundinamarca
+
+          <div aria-hidden="true" className="mx-auto mt-8 h-px w-20 bg-cream-soft/25" />
+          <p className="mt-6 font-serif text-sm italic text-cream-soft/85">
+            La Glorieta · Salom&eacute; — Guaduas, Cundinamarca
           </p>
-          <p className="mt-3 text-xs text-gray-400">
-            ¿Tienes alguna pregunta? Escr&iacute;benos a{" "}
-            <a href="mailto:laglorietarest@gmail.com" className="text-primary-400 underline">laglorietarest@gmail.com</a>
+          <p className="mt-2 text-xs text-cream-soft/65">
+            ¿Alguna pregunta? Escr&iacute;benos a{" "}
+            <a href="mailto:laglorietarest@gmail.com" className="link-underline font-medium text-cream-soft">
+              laglorietarest@gmail.com
+            </a>
           </p>
+          <a href="/" className="link-underline mt-7 inline-block text-sm font-medium text-cream-soft/80 hover:text-cream">
+            Volver al inicio
+          </a>
         </div>
       </main>
     );
   }
 
   return (
-    <main className="flex min-h-screen flex-col items-center bg-gray-50 px-4 py-6">
+    <main className="flex min-h-[100dvh] flex-col items-center bg-canvas px-4 py-8 sm:py-10">
       <div className="w-full max-w-lg">
         {/* Header */}
-        <div className="mb-6 text-center">
-          <div className="mx-auto mb-2 flex h-12 w-12 items-center justify-center rounded-xl bg-primary-100">
-            <span className="text-xl">🍽️</span>
+        <div className="mb-7 flex flex-col items-center text-center">
+          <div className="mb-4 flex items-center gap-3">
+            <LogoPlaque src="/logos/la-glorieta.jpg" alt="La Glorieta Restaurante — desde 1960" className="h-12 w-20" priority />
+            <span className="font-serif text-lg italic text-ink-mute" aria-hidden="true">y</span>
+            <LogoPlaque src="/logos/salome.png" alt="Salomé — momentos · restó · café" className="h-12 w-20" priority />
           </div>
-          <h1 className="text-xl font-bold text-gray-900">La Glorieta y Salomé</h1>
-          <p className="text-sm text-gray-500">Proceso de Selección</p>
+          <p className="eyebrow text-accent-700">Proceso de selección</p>
+          <h1 className="mt-1.5 font-serif text-2xl font-semibold text-ink">La Glorieta y Salomé</h1>
         </div>
 
         {/* Restored draft banner */}
@@ -362,26 +411,37 @@ export default function AplicarPage() {
         </div>
 
         {/* Step content */}
-        <div key={currentStep} className="animate-slide-up rounded-card border-t-4 border-primary-500 bg-white p-6 shadow-card">
-          <h2 className="mb-1 text-xl font-semibold text-gray-900">
+        <div key={currentStep} className="animate-rise-in rounded-card border border-line bg-surface p-6 shadow-card sm:p-7">
+          {/* tabIndex + focus() on step change repositions keyboard/SR users to the
+              new step; the heading isn't an operable control, so we suppress its ring. */}
+          <h2 ref={headingRef} tabIndex={-1} style={{ outline: "none" }} className="mb-1 font-serif text-xl font-semibold text-ink sm:text-2xl">
             {step.title}
           </h2>
-          <p className="mb-6 text-sm text-gray-500">{step.description}</p>
+          <p className="mb-6 text-sm text-ink-soft">{step.description}</p>
 
           {step.questions.length === 0 && step.id === "intro" ? (
-            <div className="space-y-4 text-sm text-gray-600">
-              <p className="font-medium text-gray-800">Nuestro proceso funciona así:</p>
-              <ol className="list-inside list-decimal space-y-2">
-                <li>Completas esta entrevista virtual (~15 min)</li>
-                <li>Evaluamos tus respuestas</li>
-                <li>Si pasas, te citamos a entrevista personal</li>
-                <li>Decisión final y contratación</li>
+            <div className="space-y-4 text-sm text-ink-soft">
+              <p className="font-medium text-ink">Nuestro proceso funciona así:</p>
+              <ol className="space-y-2.5">
+                {[
+                  "Completas esta entrevista virtual (~15 min)",
+                  "Evaluamos tus respuestas",
+                  "Si pasas, te citamos a entrevista personal",
+                  "Decisión final y contratación",
+                ].map((txt, idx) => (
+                  <li key={idx} className="flex items-start gap-3">
+                    <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-primary-100 font-serif text-xs font-bold text-primary-700">
+                      {idx + 1}
+                    </span>
+                    <span className="pt-0.5">{txt}</span>
+                  </li>
+                ))}
               </ol>
-              <div className="rounded-lg bg-primary-50 p-4 text-primary-800">
+              <div className="rounded-field bg-primary-50 p-4 text-primary-800 ring-1 ring-primary-100">
                 <p className="font-medium">Responde con honestidad y detalle.</p>
                 <p className="mt-1 text-primary-700">No hay respuestas &quot;correctas&quot;, pero respuestas genuinas y completas nos ayudan a conocerte mejor.</p>
               </div>
-              <p className="text-xs text-gray-400">Tus datos son confidenciales y se usan exclusivamente para este proceso de selección.</p>
+              <p className="text-xs text-ink-mute">Tus datos son confidenciales y se usan exclusivamente para este proceso de selección.</p>
             </div>
           ) : (
             <div className="space-y-5">
@@ -415,8 +475,11 @@ export default function AplicarPage() {
             <button
               type="button"
               onClick={handleBack}
-              className="flex-1 rounded-lg border border-gray-200 px-4 py-3 font-medium text-gray-700 transition-colors hover:bg-gray-50"
+              className="flex h-12 flex-1 items-center justify-center gap-1.5 rounded-field border border-line bg-surface px-4 font-medium text-ink-soft transition-colors hover:border-line-strong hover:bg-canvas-deep"
             >
+              <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M10.5 19.5 3 12m0 0 7.5-7.5M3 12h18" />
+              </svg>
               Anterior
             </button>
           )}
@@ -424,18 +487,36 @@ export default function AplicarPage() {
             <button
               type="button"
               onClick={handleNext}
-              className="flex-1 rounded-lg bg-primary-600 px-4 py-3 font-medium text-white transition-all hover:bg-primary-700 active:scale-[0.98]"
+              className="group flex h-12 flex-[1.4] items-center justify-center gap-2 rounded-field bg-primary-700 font-semibold text-cream shadow-button transition-all duration-300 hover:-translate-y-0.5 hover:bg-primary-800 hover:shadow-button-hover active:translate-y-0 active:scale-[0.99]"
             >
               Siguiente
+              <svg className="h-4 w-4 transition-transform duration-300 group-hover:translate-x-0.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M13.5 4.5 21 12m0 0-7.5 7.5M21 12H3" />
+              </svg>
             </button>
           ) : (
             <button
               type="button"
               onClick={handleSubmit}
               disabled={submitting}
-              className="flex-1 rounded-lg bg-primary-600 px-4 py-3 font-medium text-white transition-all hover:bg-primary-700 active:scale-[0.98] disabled:opacity-50"
+              className="flex h-12 flex-[1.4] items-center justify-center gap-2 rounded-field bg-primary-700 font-semibold text-cream shadow-button transition-all duration-300 hover:-translate-y-0.5 hover:bg-primary-800 hover:shadow-button-hover active:translate-y-0 active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-60 disabled:hover:translate-y-0"
             >
-              {submitting ? "Enviando..." : "Enviar Entrevista"}
+              {submitting ? (
+                <>
+                  <svg className="h-4 w-4 animate-spin" viewBox="0 0 24 24" fill="none">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="3" />
+                    <path className="opacity-90" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                  </svg>
+                  Enviando…
+                </>
+              ) : (
+                <>
+                  Enviar entrevista
+                  <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12.75l6 6 9-13.5" />
+                  </svg>
+                </>
+              )}
             </button>
           )}
         </div>
@@ -456,13 +537,22 @@ function QuestionField({
   onChange: (val: unknown) => void;
 }) {
   const baseInputClass =
-    "w-full rounded-lg border px-3 py-2.5 text-gray-900 transition-colors focus:border-primary-500 focus:outline-none focus:ring-2 focus:ring-primary-500/20";
-  const errorClass = error ? "border-red-400" : "border-gray-200 ring-1 ring-gray-100";
+    "w-full rounded-field border bg-surface px-3.5 py-3 text-[15px] text-ink placeholder-ink-mute/60 shadow-field transition-all focus:border-primary-500 focus:outline-none focus:ring-2 focus:ring-primary-500/25";
+  const errorClass = error ? "border-accent-400 ring-1 ring-accent-400/30" : "border-line hover:border-line-strong";
+  const errId = `q-${q.id}-error`;
+  // aria wiring shared by native inputs
+  const invalidProps = { "aria-invalid": error ? true : undefined, "aria-describedby": error ? errId : undefined };
+  const ErrorText = () =>
+    error ? (
+      <p id={errId} role="alert" className="mt-1.5 text-sm text-accent-700">
+        {error}
+      </p>
+    ) : null;
 
   if (q.type === "text") {
     return (
       <div>
-        <label htmlFor={`q-${q.id}`} className="mb-1 block text-sm font-medium text-gray-700">{q.label}</label>
+        <label htmlFor={`q-${q.id}`} className="mb-1.5 block text-sm font-medium text-ink">{q.label}</label>
         <input
           id={`q-${q.id}`}
           type="text"
@@ -470,10 +560,11 @@ function QuestionField({
           onChange={(e) => onChange(e.target.value)}
           placeholder={q.placeholder}
           maxLength={q.maxLength}
+          {...invalidProps}
           className={`${baseInputClass} ${errorClass}`}
         />
         {q.maxLength && <CharCount current={((value as string) || "").length} max={q.maxLength} />}
-        {error && <p className="mt-1 text-sm text-red-600">{error}</p>}
+        <ErrorText />
       </div>
     );
   }
@@ -481,7 +572,7 @@ function QuestionField({
   if (q.type === "textarea") {
     return (
       <div>
-        <label htmlFor={`q-${q.id}`} className="mb-1 block text-sm font-medium text-gray-700">{q.label}</label>
+        <label htmlFor={`q-${q.id}`} className="mb-1.5 block text-sm font-medium text-ink">{q.label}</label>
         <textarea
           id={`q-${q.id}`}
           value={(value as string) || ""}
@@ -489,10 +580,11 @@ function QuestionField({
           placeholder={q.placeholder}
           maxLength={q.maxLength}
           rows={4}
+          {...invalidProps}
           className={`${baseInputClass} ${errorClass} resize-none`}
         />
         {q.maxLength && <CharCount current={((value as string) || "").length} max={q.maxLength} />}
-        {error && <p className="mt-1 text-sm text-red-600">{error}</p>}
+        <ErrorText />
       </div>
     );
   }
@@ -500,7 +592,7 @@ function QuestionField({
   if (q.type === "number") {
     return (
       <div>
-        <label htmlFor={`q-${q.id}`} className="mb-1 block text-sm font-medium text-gray-700">{q.label}</label>
+        <label htmlFor={`q-${q.id}`} className="mb-1.5 block text-sm font-medium text-ink">{q.label}</label>
         <input
           id={`q-${q.id}`}
           type="number"
@@ -508,9 +600,10 @@ function QuestionField({
           onChange={(e) => onChange(e.target.value)}
           min={q.min}
           max={q.max}
+          {...invalidProps}
           className={`${baseInputClass} ${errorClass}`}
         />
-        {error && <p className="mt-1 text-sm text-red-600">{error}</p>}
+        <ErrorText />
       </div>
     );
   }
@@ -518,11 +611,12 @@ function QuestionField({
   if (q.type === "select") {
     return (
       <div>
-        <label htmlFor={`q-${q.id}`} className="mb-1 block text-sm font-medium text-gray-700">{q.label}</label>
+        <label htmlFor={`q-${q.id}`} className="mb-1.5 block text-sm font-medium text-ink">{q.label}</label>
         <select
           id={`q-${q.id}`}
           value={(value as string) || ""}
           onChange={(e) => onChange(e.target.value)}
+          {...invalidProps}
           className={`${baseInputClass} ${errorClass}`}
         >
           <option value="">Seleccionar...</option>
@@ -530,8 +624,8 @@ function QuestionField({
             <option key={opt.value} value={opt.value}>{opt.label}</option>
           ))}
         </select>
-        {q.hint && <p className="mt-1 text-xs text-gray-400">{q.hint}</p>}
-        {error && <p className="mt-1 text-sm text-red-600">{error}</p>}
+        {q.hint && <p className="mt-1.5 text-xs text-ink-mute">{q.hint}</p>}
+        <ErrorText />
       </div>
     );
   }
@@ -540,15 +634,21 @@ function QuestionField({
     const selected = (value as string[]) || [];
     return (
       <div>
-        <label id={`q-${q.id}`} className="mb-2 block text-sm font-medium text-gray-700">{q.label}</label>
-        <div className="space-y-2" aria-labelledby={`q-${q.id}`}>
+        <label id={`q-${q.id}`} className="mb-2 block text-sm font-medium text-ink">{q.label}</label>
+        <div
+          className="space-y-2"
+          role="group"
+          aria-labelledby={`q-${q.id}`}
+          aria-invalid={error ? true : undefined}
+          aria-describedby={error ? errId : undefined}
+        >
           {q.options?.map((opt) => (
             <label
               key={opt.value}
-              className={`flex cursor-pointer items-center gap-3 rounded-lg border px-3 py-2.5 transition-all ${
+              className={`flex cursor-pointer items-center gap-3 rounded-field border px-3.5 py-3 transition-all ${
                 selected.includes(opt.value)
                   ? "border-primary-500 bg-primary-50 ring-1 ring-primary-500/20"
-                  : "border-gray-200 hover:bg-gray-50"
+                  : "border-line hover:bg-canvas-deep"
               }`}
             >
               <input
@@ -561,13 +661,13 @@ function QuestionField({
                     onChange(selected.filter((v) => v !== opt.value));
                   }
                 }}
-                className="h-4 w-4 rounded border-gray-300 text-primary-600 focus:ring-primary-500"
+                className="h-4 w-4 rounded border-line-strong text-primary-600 focus:ring-primary-500"
               />
-              <span className="text-sm text-gray-700">{opt.label}</span>
+              <span className="text-sm text-ink-soft">{opt.label}</span>
             </label>
           ))}
         </div>
-        {error && <p className="mt-1 text-sm text-red-600">{error}</p>}
+        <ErrorText />
       </div>
     );
   }
@@ -575,15 +675,22 @@ function QuestionField({
   if (q.type === "boolean") {
     return (
       <div>
-        <label id={`q-${q.id}`} className="mb-2 block text-sm font-medium text-gray-700">{q.label}</label>
-        <div className="flex gap-3" role="group" aria-labelledby={`q-${q.id}`}>
+        <label id={`q-${q.id}`} className="mb-2 block text-sm font-medium text-ink">{q.label}</label>
+        <div
+          className="flex gap-3"
+          role="group"
+          aria-labelledby={`q-${q.id}`}
+          aria-invalid={error ? true : undefined}
+          aria-describedby={error ? errId : undefined}
+        >
           <button
             type="button"
             onClick={() => onChange(true)}
-            className={`flex flex-1 items-center justify-center gap-2 rounded-lg border px-4 py-2.5 text-sm font-medium transition-all ${
+            aria-pressed={value === true}
+            className={`flex flex-1 items-center justify-center gap-2 rounded-field border px-4 py-3 text-sm font-medium transition-all ${
               value === true
                 ? "border-primary-600 bg-primary-50 text-primary-700 ring-1 ring-primary-500/20"
-                : "border-gray-200 text-gray-700 hover:bg-gray-50"
+                : "border-line text-ink-soft hover:bg-canvas-deep hover:border-line-strong"
             }`}
           >
             <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
@@ -594,10 +701,11 @@ function QuestionField({
           <button
             type="button"
             onClick={() => onChange(false)}
-            className={`flex flex-1 items-center justify-center gap-2 rounded-lg border px-4 py-2.5 text-sm font-medium transition-all ${
+            aria-pressed={value === false}
+            className={`flex flex-1 items-center justify-center gap-2 rounded-field border px-4 py-3 text-sm font-medium transition-all ${
               value === false
-                ? "border-red-400 bg-red-50 text-red-700 ring-1 ring-red-400/20"
-                : "border-gray-200 text-gray-700 hover:bg-gray-50"
+                ? "border-accent-400 bg-accent-100 text-accent-700 ring-1 ring-accent-400/25"
+                : "border-line text-ink-soft hover:bg-canvas-deep hover:border-line-strong"
             }`}
           >
             <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
@@ -606,7 +714,7 @@ function QuestionField({
             No
           </button>
         </div>
-        {error && <p className="mt-1 text-sm text-red-600">{error}</p>}
+        <ErrorText />
       </div>
     );
   }
@@ -618,17 +726,18 @@ function QuestionField({
     const maxDateStr = maxDate.toISOString().split("T")[0];
     return (
       <div>
-        <label htmlFor={`q-${q.id}`} className="mb-1 block text-sm font-medium text-gray-700">{q.label}</label>
+        <label htmlFor={`q-${q.id}`} className="mb-1.5 block text-sm font-medium text-ink">{q.label}</label>
         <input
           id={`q-${q.id}`}
           type="date"
           value={(value as string) || ""}
           onChange={(e) => onChange(e.target.value)}
           max={maxDateStr}
+          {...invalidProps}
           className={`${baseInputClass} ${errorClass}`}
         />
-        {q.hint && <p className="mt-1 text-xs text-gray-400">{q.hint}</p>}
-        {error && <p className="mt-1 text-sm text-red-600">{error}</p>}
+        {q.hint && <p className="mt-1.5 text-xs text-ink-mute">{q.hint}</p>}
+        <ErrorText />
       </div>
     );
   }
@@ -636,16 +745,17 @@ function QuestionField({
   if (q.type === "checkbox") {
     return (
       <div>
-        <label className="flex cursor-pointer items-start gap-3 rounded-lg border border-gray-200 px-4 py-3 transition-colors hover:bg-gray-50">
+        <label className="flex cursor-pointer items-start gap-3 rounded-field border border-line px-4 py-3 transition-colors hover:bg-canvas-deep">
           <input
             type="checkbox"
             checked={value === true}
             onChange={(e) => onChange(e.target.checked)}
-            className="mt-0.5 h-4 w-4 rounded border-gray-300 text-primary-600 focus:ring-primary-500"
+            {...invalidProps}
+            className="mt-0.5 h-4 w-4 rounded border-line-strong text-primary-600 focus:ring-primary-500"
           />
-          <span className="text-sm text-gray-700">{q.label}</span>
+          <span className="text-sm text-ink-soft">{q.label}</span>
         </label>
-        {error && <p className="mt-1 text-sm text-red-600">{error}</p>}
+        <ErrorText />
       </div>
     );
   }
@@ -656,7 +766,7 @@ function QuestionField({
 function CharCount({ current, max }: { current: number; max: number }) {
   const isNearLimit = current > max * 0.9;
   return (
-    <p className={`mt-0.5 text-right text-xs ${isNearLimit ? "text-orange-500" : "text-gray-400"}`}>
+    <p className={`mt-1 text-right text-xs ${isNearLimit ? "text-accent-600" : "text-ink-mute"}`}>
       {current}/{max}
     </p>
   );
