@@ -3,7 +3,6 @@
 import { useState, useRef, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import Image from "next/image";
 import { ClocheCrest } from "@/components/brand/cloche-crest";
 import { BrandBackdrop } from "@/components/brand/brand-backdrop";
 import { LogoPlaque } from "@/components/brand/logo-plaque";
@@ -117,9 +116,9 @@ export default function AdminLoginPage() {
             </div>
           </div>
 
-          {/* Bottom — place + attribution */}
+          {/* Bottom — place */}
           <div
-            className="animate-fade-in hidden items-center justify-between text-xs text-cream-soft/80 sm:flex"
+            className="animate-fade-in hidden items-center text-xs text-cream-soft/80 sm:flex"
             style={{ animationDelay: "900ms" }}
           >
             <span className="inline-flex items-center gap-1.5">
@@ -128,10 +127,6 @@ export default function AdminLoginPage() {
                 <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 10.5c0 7.142-7.5 11.25-7.5 11.25S4.5 17.642 4.5 10.5a7.5 7.5 0 1115 0z" />
               </svg>
               Guaduas, Cundinamarca
-            </span>
-            <span className="inline-flex items-center gap-1.5 opacity-70">
-              <Image src="/logos/im3.png" alt="" width={16} height={16} className="opacity-80 invert" />
-              IM3 Systems
             </span>
           </div>
         </div>
