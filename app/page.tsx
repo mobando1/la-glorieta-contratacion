@@ -1,5 +1,4 @@
 import Link from "next/link";
-import Image from "next/image";
 import { BrandBackdrop } from "@/components/brand/brand-backdrop";
 import { ClocheCrest } from "@/components/brand/cloche-crest";
 import { LogoPlaque } from "@/components/brand/logo-plaque";
@@ -212,16 +211,10 @@ export default function HomePage() {
 
       {/* ===== FOOTER ===== */}
       <footer className="bg-canvas-deep px-5 py-8">
-        <div className="mx-auto flex max-w-2xl flex-col items-center gap-3 text-center">
+        <div className="mx-auto flex max-w-2xl flex-col items-center text-center">
           <p className="font-serif text-sm italic text-ink-mute">
             La Glorieta · Salomé — Guaduas, Cundinamarca
           </p>
-          <div className="flex items-center gap-2 opacity-70">
-            <Image src="/logos/im3.png" alt="" width={20} height={20} className="opacity-70" />
-            <p className="text-[11px] tracking-wide text-ink-mute">
-              Desarrollado por <span className="font-semibold text-ink-soft">IM3 Systems</span>
-            </p>
-          </div>
         </div>
       </footer>
     </main>
